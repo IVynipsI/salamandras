@@ -1,46 +1,12 @@
-
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Salamandras - Painel DEV</title>
-</head>
-<body>
-
-    <p id="verificando">Verificando autorização...</p>
-
-    <main id="painel-dev" hidden>
-
-        <h1>Painel Administrativo - Salamandras</h1>
-        <p>Bem-vindo, DEV!</p>
-
-        <hr>
-
-        <h2>Gerenciamento</h2>
-
-        <button type="button">
-            Solicitações de acesso
-        </button>
-
-        <button type="button">
-            Gerenciar docerias
-        </button>
-
-        <button type="button">
-            Gerenciar usuários
-        </button>
-
-        <hr>
-
-        <button type="button" id="sair">
-            Sair
-        </button>
-
-    </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="painel.js"></script>
-
-</body>
-</html>
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Salamandras | Painel</title><link rel="stylesheet" href="style.css"></head>
+<body data-page="painel">
+<header class="topo"><div><a class="marca" href="painel.html">🦎 Salamandras</a><div class="subtitulo">Sistema de gestão para docerias</div></div>
+<div class="userbar"><small id="usuario-atual"></small><div id="seletor-tenant"></div><button id="sair" type="button">Sair</button></div></header>
+<div class="layout"><nav id="menu"></nav>
+<main class="conteudo"><div id="aviso" class="aviso" role="status" aria-live="polite"></div>
+<h1>Painel</h1><p class="muted">Resumo do estabelecimento e acesso aos módulos.</p><div id="conteudo">Verificando autorização...</div></main></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script><script src="app.js"></script>
+</body></html>

@@ -1,48 +1,35 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Salamandras - Acesso</title>
-</head>
-<body>
-
-    <h1>Salamandras</h1>
-    <p>Sistema de gestão para docerias</p>
-
-    <h2>Criar minha conta</h2>
-
-    <form id="form-cadastro">
-        <label for="email">E-mail:</label>
-        <input type="email" id="email" required>
-
-        <label for="senha">Senha:</label>
-        <input type="password" id="senha" minlength="6" required>
-
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Salamandras | Entrar</title><link rel="stylesheet" href="style.css"></head>
+<body data-page="login" class="auth">
+  <main class="painel-login">
+    <div class="marca">🦎 Salamandras</div>
+    <p class="muted">Gestão de docerias — acesso mediante aprovação.</p>
+    <div id="aviso" class="aviso" role="status" aria-live="polite"></div>
+    <section id="auth-forms" class="authflex">
+      <div><h2>Entrar</h2><form id="form-login">
+        <div><label for="login-email">E-mail</label><input id="login-email" type="email" required autocomplete="email"></div>
+        <div><label for="login-senha">Senha</label><input id="login-senha" type="password" required autocomplete="current-password"></div>
+        <button type="submit">Entrar</button></form></div>
+      <div><h2>Solicitar cadastro</h2><form id="form-cadastro">
+        <div><label for="cad-email">E-mail</label><input id="cad-email" type="email" required autocomplete="email"></div>
+        <div><label for="cad-senha">Nova senha</label><input id="cad-senha" type="password" minlength="8" required autocomplete="new-password"></div>
         <button type="submit">Solicitar acesso</button>
-    </form>
-
-    <p id="mensagem"></p>
-
-    <hr>
-
-    <h2>Entrar no Salamandras</h2>
-
-    <form id="form-login">
-        <label for="email-login">E-mail:</label>
-        <input type="email" id="email-login" required>
-
-        <label for="senha-login">Senha:</label>
-        <input type="password" id="senha-login" required>
-
-        <button type="submit">Entrar</button>
-    </form>
-
-    <p id="mensagem-login"></p>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js"></script>
-
-</body>
-</html>
+        <small>Confirme o e-mail, se solicitado. A conta só será liberada por DEV ou ADM.</small>
+      </form></div>
+    </section>
+    <section id="pendente" class="card escondido">
+      <h2 id="pendente-titulo">Aguardando aprovação</h2>
+      <p id="pendente-texto">Seu cadastro ainda não foi autorizado.</p>
+      <form id="form-convite" class="formgrid">
+        <div><label for="codigo-convite">Código de convite da doceria (opcional)</label>
+          <input id="codigo-convite" placeholder="Código fornecido pelo ADM"></div>
+        <button type="submit">Vincular solicitação</button>
+      </form>
+      <p><button type="button" class="sec" id="sair-pendente">Sair</button></p>
+    </section>
+  </main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script><script src="app.js"></script>
+</body></html>
