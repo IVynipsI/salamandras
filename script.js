@@ -79,6 +79,11 @@ formularioLogin.addEventListener("submit", async function(evento) {
         mensagemLogin.textContent =
             "Login autorizado! Seu cargo é: " + perfil.cargo;
 
+if (perfil.cargo === "dev") {
+    document.getElementById("painel-dev").hidden = false;
+}
+
+
     } catch (erro) {
         await supabaseClient.auth.signOut();
 
