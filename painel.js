@@ -1,7 +1,11 @@
 
-const url = "https://ptwwetggnaolvoqmgguy.supabase.co";
-const chave = "sb_publishable_m6Pjk6f_eWTdtWgqC5SEqw_cBBCcAiK";
-const cliente = supabase.createClient(url, chave);
+const SUPABASE_URL = "https://ptwwetggnaolvoqmgguy.supabase.co";
+const SUPABASE_KEY = "sb_publishable_m6Pjk6f_eWTdtWgqC5SEqw_cBBCcAiK";
+
+const cliente = supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+);
 
 async function verificarAcesso() {
     try {
@@ -14,15 +18,18 @@ async function verificarAcesso() {
         }
 
         const { data: perfil, error: erroPerfil } =
-            await cliente.from("perfis")
+            await cliente
+                .from("perfis")
                 .select("cargo, status")
                 .eq("id", user.id)
                 .single();
 
-        if (erroPerfil || !perfil ||
+        if (
+            erroPerfil ||
+            !perfil ||
             perfil.status !== "aprovado" ||
-            perfil.cargo !== "dev") {
-
+            perfil.cargo !== "dev"
+        ) {
             await cliente.auth.signOut();
             window.location.replace("index.html");
             return;
@@ -33,7 +40,7 @@ async function verificarAcesso() {
 
     } catch (erro) {
         document.getElementById("verificando").textContent =
-            "Não foi possível verificar o acesso.";
+            "Não foi possível verificar a autorização.";
     }
 }
 

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Salamandras - Cadastro</title>
+    <title>Salamandras - Acesso</title>
 </head>
 <body>
 
@@ -14,56 +14,35 @@
     <h2>Criar minha conta</h2>
 
     <form id="form-cadastro">
-
         <label for="email">E-mail:</label>
-        <input 
-            type="email" 
-            id="email" 
-            required
-        >
+        <input type="email" id="email" required>
 
         <label for="senha">Senha:</label>
-        <input 
-            type="password" 
-            id="senha" 
-            minlength="6"
-            required
-        >
+        <input type="password" id="senha" minlength="6" required>
 
         <button type="submit">Solicitar acesso</button>
-
     </form>
 
     <p id="mensagem"></p>
 
-<hr>
+    <hr>
 
-<h2>Entrar no Salamandras</h2>
+    <h2>Entrar no Salamandras</h2>
 
-<form id="form-login">
+    <form id="form-login">
+        <label for="email-login">E-mail:</label>
+        <input type="email" id="email-login" required>
 
-    <label for="email-login">E-mail:</label>
-    <input
-        type="email"
-        id="email-login"
-        required
-    >
+        <label for="senha-login">Senha:</label>
+        <input type="password" id="senha-login" required>
 
-    <label for="senha-login">Senha:</label>
-    <input
-        type="password"
-        id="senha-login"
-        required
-    >
+        <button type="submit">Entrar</button>
+    </form>
 
-    <button type="submit">Entrar</button>
+    <p id="mensagem-login"></p>
 
-</form>
-
-<p id="mensagem-login"></p>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
 
 </body>
 </html>

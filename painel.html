@@ -7,20 +7,38 @@
     <title>Salamandras - Painel DEV</title>
 </head>
 <body>
+
     <p id="verificando">Verificando autorização...</p>
 
     <main id="painel-dev" hidden>
+
         <h1>Painel Administrativo</h1>
         <p>Bem-vindo ao Salamandras, DEV!</p>
 
-        <button>Solicitações de acesso</button>
-        <button>Gerenciar docerias</button>
-        <button>Gerenciar usuários</button>
+        <h2>Gerenciamento</h2>
 
-        <button id="sair">Sair</button>
+        <button type="button">
+            Solicitações de acesso
+        </button>
+
+        <button type="button">
+            Gerenciar docerias
+        </button>
+
+        <button type="button">
+            Gerenciar usuários
+        </button>
+
+        <hr>
+
+        <button type="button" id="sair">
+            Sair
+        </button>
+
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="painel.js"></script>
+
 </body>
 </html>
