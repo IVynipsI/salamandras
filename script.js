@@ -76,12 +76,14 @@ formularioLogin.addEventListener("submit", async function(evento) {
         }
 
         // Usuário aprovado
-        mensagemLogin.textContent =
-            "Login autorizado! Seu cargo é: " + perfil.cargo;
-
+        
 if (perfil.cargo === "dev") {
-    document.getElementById("painel-dev").hidden = false;
+    window.location.href = "painel.html";
+} else {
+    mensagemLogin.textContent =
+        "Login autorizado. Painel deste cargo em desenvolvimento.";
 }
+
 
 
     } catch (erro) {
