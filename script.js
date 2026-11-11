@@ -35,3 +35,55 @@ formulario.addEventListener("submit", async function(evento) {
     }
 });
 
+const formularioLogin = document.getElementById("form-login");
+const mensagemLogin = document.getElementById("mensagem-login");
+
+formularioLogin.addEventListener("submit", async function(evento) {
+    evento.preventDefault();
+
+    const email = document.getElementById("email-login").value.trim();
+    const senha = document.getElementById("senha-login").value;
+
+    mensagemLogin.textContent = "Verificando acesso...";
+
+    try {
+        // Verifica e-mail e senha
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: senha
+        });
+
+        if (error) {
+            mensagemLogin.textContent = "Falha no login: " + error.message;
+            return;
+        }
+
+        // Busca o cargo e a aprovação do usuário
+        const { data: perfil, error: erroPerfil } = await supabaseClient
+            .from("perfis")
+            .select("cargo, status")
+            .eq("id", data.user.id)
+            .single();
+
+        // Bloqueia quem não está aprovado
+        if (erroPerfil || !perfil || perfil.status !== "aprovado") {
+            await supabaseClient.auth.signOut();
+
+            mensagemLogin.textContent =
+                "Acesso não autorizado. Aguarde a aprovação de um administrador.";
+
+            return;
+        }
+
+        // Usuário aprovado
+        mensagemLogin.textContent =
+            "Login autorizado! Seu cargo é: " + perfil.cargo;
+
+    } catch (erro) {
+        await supabaseClient.auth.signOut();
+
+        mensagemLogin.textContent =
+            "Não foi possível verificar sua autorização.";
+    }
+});
+
