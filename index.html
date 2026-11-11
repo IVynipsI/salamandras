@@ -4,15 +4,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Salamandras</title>
+    <title>Salamandras - Cadastro</title>
 </head>
 <body>
-    <h1>Bem-vindo ao Salamandras!</h1>
-    <p>Nosso sistema de gestão para docerias.</p>
 
-    <button>Entrar no sistema</button>
+    <h1>Salamandras</h1>
+    <p>Sistema de gestão para docerias</p>
+
+    <h2>Criar minha conta</h2>
+
+    <form id="form-cadastro">
+
+        <label for="email">E-mail:</label>
+        <input 
+            type="email" 
+            id="email" 
+            required
+        >
+
+        <label for="senha">Senha:</label>
+        <input 
+            type="password" 
+            id="senha" 
+            minlength="6"
+            required
+        >
+
+        <button type="submit">Cadastrar</button>
+
+    </form>
+
+    <p id="mensagem"></p>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
+
 </body>
 </html>
