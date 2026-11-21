@@ -156,36 +156,113 @@ window.Salamandras12 = (() => {
     });
   }
   async function movimentacoes(ctx){
-    const d=await dadosEstoque(ctx);const lotes=(d.lotes||[]).filter(x=>x.quantidade_atual>0),locais=d.locais||[],pos=d.posicoes||[];
-    const ing=d.ingredientes||[];const mut=ctx.pode('adm','logistica');
-    const linhas=(d.movimentos||[]).map(m=>{
-      const lote=d.lotes.find(l=>l.id===m.lote_id),local=locais.find(l=>l.id===m.local_id);
-      return `<tr><td>${new Date(m.created_at).toLocaleString('pt-BR')}</td><td>${E(lote?.codigo||'—')}</td><td>${E(m.acao)}</td><td>${num(m.quantidade)}</td><td>${E(local?.nome||'—')}</td></tr>`;
+    const [d,acessos,solicitacoes,produtosRes]=await Promise.all([
+      dadosEstoque(ctx),
+      ctx.rpc('api_13b_acessos',{p_empresa:ctx.tenant}),
+      ctx.rpc('api_13b_listar',{p_empresa:ctx.tenant}),
+      ctx.db.from('produtos').select('id,nome,excluido_em').eq('doceria_id',ctx.tenant)
+    ]);
+    const ing=d.ingredientes||[],todosLotes=d.lotes||[],lotes=todosLotes.filter(l=>Number(l.quantidade_atual)>0);
+    const locais=d.locais||[],movs=d.movimentos||[];
+    const produtos=produtosRes.error?[]:(produtosRes.data||[]).filter(x=>!x.excluido_em);
+    const pos=d.posicoes||[],temLote=new Set(todosLotes.map(x=>x.ingrediente_id));
+    const ingredientesLivres=ing.filter(i=>!temLote.has(i.id));
+    const todosItens=[...ingredientesLivres.map(i=>({id:i.id,tipo:'ingrediente',nome:i.nome})),
+      ...produtos.map(i=>({id:i.id,tipo:'produto',nome:i.nome}))];
+    const formatData=v=>v?new Date(v).toLocaleString('pt-BR'):'—';
+    const pendientes=(solicitacoes||[]).filter(s=>s.status==='pendente');
+    const historicoSolicitacoes=(solicitacoes||[]).filter(s=>s.status!=='pendente');
+    const nomeItem=(s)=>{
+      if(s.tipo==='descarte_lote'){
+        const lt=todosLotes.find(l=>l.id===s.dados?.lote);
+        const local=locais.find(l=>l.id===s.dados?.local);
+        return `Lote ${E(lt?.codigo||'—')} · ${E(ing.find(i=>i.id===lt?.ingrediente_id)?.nome||'Ingrediente')} · ${num(s.dados?.quantidade)} · ${E(local?.nome||'—')}`;
+      }
+      return `${E(todosItens.find(i=>i.id===s.dados?.item)?.nome||'Item')} · variação ${num(s.dados?.variacao)}`;
+    };
+    const linhaSolicitacao=(s)=>{
+      const autorizou=s.tipo==='descarte_lote'?Boolean(acessos.aprovar_descarte):Boolean(acessos.aprovar_ajuste);
+      const podeDecidir=autorizou&&s.status==='pendente'&&s.solicitado_por_id!==ctx.perfil?.id;
+      return `<article class="rh13b-solicitacao"><div class="rh13b-pedido-titulo"><b>${s.tipo==='descarte_lote'?'Descarte':'Ajuste de inventário'}</b>
+      <span class="tag ${s.status==='pendente'?'pendente':s.status==='aprovada'?'aprovado':'rejeitado'}">${E(s.status)}</span></div>
+      <div class="rh13b-sub">${nomeItem(s)}</div><p>${E(s.motivo)}</p>
+      <small>Solicitado por <b>${E(s.solicitado_por||'Nome não informado')}</b> · ${formatData(s.solicitado_em)}</small>
+      ${s.status!=='pendente'?`<small>Decisão: ${E(s.decidido_por||'—')} · ${formatData(s.decidido_em)}${s.justificativa_decisao?` · ${E(s.justificativa_decisao)}`:''}</small>`:''}
+      ${podeDecidir?`<div class="rh13b-actions"><button type="button" class="small" data-aprovar-mov="${E(s.id)}">Aprovar</button>
+        <button type="button" class="sec small" data-recusar-mov="${E(s.id)}">Recusar</button></div>`:''}</article>`;
+    };
+    const linhas=movs.map(m=>{
+      const lt=todosLotes.find(l=>l.id===m.lote_id),local=locais.find(l=>l.id===m.local_id);
+      return `<tr><td>${formatData(m.created_at)}</td><td>${E(lt?.codigo||'—')}</td><td>${E(m.acao)}</td><td>${num(m.quantidade)}</td><td>${E(local?.nome||'—')}</td></tr>`;
     }).join('');
-    se(ctx,linkVoltar+titulo('Movimentações','Histórico de lotes, transferências e descartes')+
-      (mut?`<div class="erp12-dois"><section class="card"><h2>Transferir entre locais</h2><form id="f-transf" class="erp12-form">
+    const formTransferencia=`<form id="f-transf" class="erp12-form">
       <label>Lote<select name="lote" required>${opt(lotes,l=>l.id,l=>`${l.codigo} · ${ing.find(i=>i.id===l.ingrediente_id)?.nome||''}`)}</select></label>
       <label>Origem<select name="origem" required>${opt(locais,l=>l.id,l=>l.nome)}</select></label>
       <label>Destino<select name="destino" required>${opt(locais,l=>l.id,l=>l.nome)}</select></label>
-      <label>Quantidade<input name="qtd" type="number" step="0.001" min="0.001" required></label><button type="submit">Confirmar transferência</button></form></section>
-      <section class="card"><h2>Registrar perda/descarte</h2><form id="f-descarte" class="erp12-form">
+      <label>Quantidade<input name="qtd" type="number" step="0.001" min="0.001" required></label>
+      <button type="submit">Confirmar transferência</button></form>`;
+    const formDescarte=`<form id="f-descarte" class="erp12-form">
       <label>Lote<select name="lote" required>${opt(lotes,l=>l.id,l=>`${l.codigo} · ${ing.find(i=>i.id===l.ingrediente_id)?.nome||''}`)}</select></label>
       <label>Local<select name="local" required>${opt(locais,l=>l.id,l=>l.nome)}</select></label>
       <label>Quantidade<input name="qtd" type="number" step="0.001" min="0.001" required></label>
-      <label>Motivo<input name="motivo" minlength="5" required></label><button class="danger" type="submit">Registrar descarte</button></form></section></div>`:'')+
-      `<section class="card"><h2>Histórico</h2><details><summary class="erp12-summary">Ver últimas movimentações (${(d.movimentos||[]).length})</summary>${tabela(['Quando','Lote','Tipo','Quantidade','Local'],linhas)}</details></section>`);
+      <label>Justificativa<input name="motivo" minlength="5" maxlength="500" required placeholder="Ex.: embalagem avariada"></label>
+      <button type="submit" class="${acessos.administrar?'danger':''}">${acessos.administrar?'Confirmar descarte':'Enviar para aprovação'}</button></form>`;
+    const formAjuste=`<form id="rh13b-f-ajuste" class="erp12-form">
+      <label>Item<select name="item" required>${todosItens.map(i=>`<option value="${E(i.tipo+'|'+i.id)}">${E(i.nome)} · ${i.tipo==='ingrediente'?'Ingrediente sem lote':'Produto pronto'}</option>`).join('')}</select></label>
+      <label>Variação (+ entrada / − saída)<input name="variacao" type="number" step="0.001" required placeholder="Ex.: -3"></label>
+      <label>Justificativa<input name="motivo" minlength="5" maxlength="500" required></label>
+      <button type="submit" ${todosItens.length?'':'disabled'}>Solicitar ajuste</button>
+      <p class="muted">Ingredientes com lotes devem ser corrigidos pelo controle de lotes. A solicitação não altera o estoque antes da aprovação.</p></form>`;
+    se(ctx,linkVoltar+titulo('Movimentações','Solicitações, aprovações e histórico de estoque')+
+      `<div class="rh13b-overview"><div><b>${pendientes.length}</b><span>Solicitações pendentes</span></div><div><b>${movs.length}</b><span>Movimentações recentes</span></div></div>`+
+      `<details class="card rh13b-details" id="rh13b-fila"><summary>Solicitações para análise (${pendientes.length})</summary>
+      <p class="muted">Aprovações disponíveis somente para cargos autorizados. Ninguém aprova a própria solicitação.</p>
+      <div class="rh13b-solicitacoes">${pendientes.map(linhaSolicitacao).join('')||'<p class="muted">Nenhuma solicitação pendente.</p>'}</div></details>`+
+      `<div class="rh13b-duas-colunas">
+        <details class="card rh13b-details"><summary>Transferir entre locais</summary>${formTransferencia}</details>
+        <details class="card rh13b-details"><summary>${acessos.administrar?'Registrar descarte':'Solicitar descarte'}</summary>${formDescarte}</details>
+        <details class="card rh13b-details"><summary>Solicitar ajuste de inventário</summary>${formAjuste}</details>
+      </div>`+
+      `<details class="card rh13b-details"><summary>Histórico de solicitações (${historicoSolicitacoes.length})</summary>
+      <div class="rh13b-solicitacoes">${historicoSolicitacoes.map(linhaSolicitacao).join('')||'<p class="muted">Nenhum registro.</p>'}</div></details>`+
+      `<details class="card rh13b-details"><summary>Histórico de movimentações (${movs.length})</summary>
+      ${tabela(['Quando','Lote','Tipo','Quantidade','Local'],linhas)}</details>`);
     onForm(ctx,'f-transf',async form=>{
-      if(!confirm('Confirmar movimentação física do material?'))return;
-      const r=await ctx.rpc('api_12_transferir_lote',{p_empresa:ctx.tenant,p_lote:form.elements.lote.value,
-      p_origem:form.elements.origem.value,p_destino:form.elements.destino.value,p_quantidade:Number(form.elements.qtd.value)});
-      ctx.aviso(r);await movimentacoes(ctx);
+      if(!confirm('Confirmar transferência física dos materiais?'))return;
+      ctx.aviso(await ctx.rpc('api_12_transferir_lote',{p_empresa:ctx.tenant,
+        p_lote:form.elements.lote.value,p_origem:form.elements.origem.value,
+        p_destino:form.elements.destino.value,p_quantidade:Number(form.elements.qtd.value)}));
+      await movimentacoes(ctx);
     });
     onForm(ctx,'f-descarte',async form=>{
-      if(!confirm('O descarte reduzirá o saldo do estoque. Confirmar?'))return;
-      const r=await ctx.rpc('api_12_descartar_lote',{p_empresa:ctx.tenant,p_lote:form.elements.lote.value,
-      p_local:form.elements.local.value,p_quantidade:Number(form.elements.qtd.value),p_motivo:form.elements.motivo.value});
+      const dados={lote:form.elements.lote.value,local:form.elements.local.value,
+        quantidade:Number(form.elements.qtd.value)};
+      const motivo=form.elements.motivo.value.trim();
+      if(!confirm(acessos.administrar?'Registrar a baixa imediata deste lote?':'Enviar solicitação de descarte para aprovação?'))return;
+      const r=acessos.administrar?
+        await ctx.rpc('api_12_descartar_lote',{p_empresa:ctx.tenant,p_lote:dados.lote,p_local:dados.local,
+          p_quantidade:dados.quantidade,p_motivo:motivo}):
+        await ctx.rpc('api_13b_solicitar',{p_empresa:ctx.tenant,p_tipo:'descarte_lote',p_dados:dados,p_motivo:motivo});
       ctx.aviso(r);await movimentacoes(ctx);
     });
+    onForm(ctx,'rh13b-f-ajuste',async form=>{
+      const [tipo_item,item]=form.elements.item.value.split('|');
+      const variacao=Number(form.elements.variacao.value);
+      if(!Number.isFinite(variacao)||!variacao)throw new Error('Informe uma variação diferente de zero.');
+      if(!confirm('Enviar solicitação de ajuste para análise?'))return;
+      ctx.aviso(await ctx.rpc('api_13b_solicitar',{p_empresa:ctx.tenant,p_tipo:'ajuste_estoque',
+        p_dados:{tipo_item,item,variacao},p_motivo:form.elements.motivo.value.trim()}));
+      await movimentacoes(ctx);
+    });
+    document.querySelectorAll('[data-aprovar-mov],[data-recusar-mov]').forEach(b=>b.addEventListener('click',async()=>{
+      const aprovar=b.hasAttribute('data-aprovar-mov');
+      const id=b.getAttribute(aprovar?'data-aprovar-mov':'data-recusar-mov');
+      const explicacao=aprovar?'':prompt('Informe o motivo da recusa (mínimo 5 caracteres):');
+      if(!aprovar&&(explicacao===null||explicacao.trim().length<5))return;
+      if(!confirm(aprovar?'Aprovar e executar o ajuste no estoque?':'Confirmar recusa da solicitação?'))return;
+      try{ctx.aviso(await ctx.rpc('api_13b_decidir',{p_empresa:ctx.tenant,p_solicitacao:id,
+        p_aprovar:aprovar,p_justificativa:explicacao||''}));await movimentacoes(ctx)}catch(err){ctx.falha(err)}
+    }));
   }
   async function custos(ctx){
     if(!ctx.pode('adm','financeiro')){
@@ -330,8 +407,22 @@ window.Salamandras12 = (() => {
        <div id="grafico-dia" hidden></div><p class="muted">O histórico completo fica em Relatórios.</p></section>`:''}
        <section class="card"><h2>Pedidos do dia</h2><div class="erp12-abas"><button class="sec small" id="ver-fazer">A fazer (${d.a_fazer||0})</button><button class="sec small" id="ver-concluidos">Concluídos (${d.concluidos||0})</button></div>
         <div id="tabela-pedidos-hoje"></div></section>
-      </div><div><section class="card"><h2>Avisos importantes ${alert.quantidade?`<span class="erp12-contador">${alert.quantidade}</span>`:''}</h2>${alert.html}</section>
+      </div><div><section class="card"><h2>Avisos importantes ${alert.quantidade?`<span class="erp12-contador">${alert.quantidade}</span>`:''}</h2>${alert.html}<div id="rh13b-avisos-gerencia"></div></section>
       <section class="card"><h2>Cortesias</h2><div id="cortesias-hoje"><p class="muted">Consultando avisos pendentes...</p></div></section></div></div>`);
+    // Gerentes e ADM: aviso compacto; a lista completa permanece fechada em Movimentacoes.
+    try{
+      const cap=await ctx.rpc('api_13b_acessos',{p_empresa:ctx.tenant});
+      if(cap.aprovar_ajuste||cap.aprovar_descarte){
+        const pend=(await ctx.rpc('api_13b_listar',{p_empresa:ctx.tenant})).filter(x=>
+          x.status==='pendente'&&x.solicitado_por_id!==ctx.perfil?.id &&
+          (x.tipo==='descarte_lote'?cap.aprovar_descarte:cap.aprovar_ajuste));
+        if(pend.length){
+          const area=f('rh13b-avisos-gerencia');if(area)area.innerHTML=`<div class="erp12-alerta warn"><b>${pend.length} solicitacao(oes) da Logistica aguardando aprovacao</b>
+            <p class="muted">Ajustes e descartes exigem a sua conferencia.</p>
+            <a href="estoque-movimentacoes.html">Conferir solicitacoes →</a></div>`;
+        }
+      }
+    }catch(e){console.debug('Avisos de aprovacoes indisponiveis',e)}
     const montar=feito=>{
       const ls=pedidos.filter(x=>feito?x.status==='entregue':x.status!=='entregue');
       f('tabela-pedidos-hoje').innerHTML=ls.length?tabela(['Pedido','Cliente','Horário','Situação'],ls.map(x=>

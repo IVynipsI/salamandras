@@ -223,32 +223,35 @@ const paginas = [
   ['painel','Painel'],['usuarios','Usuários'],['permissoes','Permissões'],
   ['empresas','Empresas'],['redes','Redes da loja'],
   ['estoque','Estoque'],['produtos','Produtos'],
-  ['pedidos','Pedidos'],['cancelados','Pedidos cancelados'],['clientes','Clientes'],
+  ['pedidos','Pedidos'],['clientes','Clientes'],
   ['producao','Produção'],['produtos-prontos','Produtos prontos'],
   ['agenda','Agenda de entregas'],['financeiro','Financeiro'],
+  ['rh','Gestão de Pessoas'],['registro-ponto','Registro de Ponto'],
   ['relatorios','Relatórios'],['loja-modelos','Loja virtual'],
+  ['solicitacoes','Solicitações'],
   ['estoque-ingredientes','Ingredientes'],['estoque-locais','Localizações'],
   ['estoque-compras','Compras'],['estoque-movimentacoes','Movimentações'],
   ['estoque-custos','Custos'],['estoque-alertas','Alertas'],
   ['docerias','Empresas'],['vitrine','Produtos prontos']
 ];
-const modulosOcultos = new Set(['docerias','vitrine','estoque-ingredientes','estoque-locais',
+const modulosOcultos = new Set(['docerias','vitrine','permissoes','cancelados','estoque-ingredientes','estoque-locais',
   'estoque-compras','estoque-movimentacoes','estoque-custos','estoque-alertas']);
 const modulosEquipe = [['painel','Painel'],['estoque','Estoque'],['produtos','Produtos'],
   ['pedidos','Pedidos'],['clientes','Clientes'],['producao','Produção'],
   ['vitrine','Produtos prontos'],['agenda','Agenda de entregas']];
 let permissoesAtivas = {};
 function podePagina(modulo){
-  if(modulo==='empresas'||modulo==='docerias') return perfil?.cargo==='dev';
-  if(modulo==='financeiro'||(modulo==='painel'&&perfil?.cargo==='financeiro')) return ['dev','adm','financeiro'].includes(perfil?.cargo);
-  if(modulo==='estoque-custos') return ['dev','adm','financeiro'].includes(perfil?.cargo);
-  if(modulo==='loja-modelos') return ['dev','adm'].includes(perfil?.cargo);
-  if(['usuarios','permissoes','redes','cancelados'].includes(modulo))
-    return ['dev','adm'].includes(perfil?.cargo);
-  if(modulo==='relatorios') return ['dev','adm'].includes(perfil?.cargo);
-  if(modulo.startsWith('estoque-')) modulo='estoque';
-  if(modulo==='produtos-prontos') modulo='vitrine';
-  if(modulo==='docerias') modulo='empresas';
+  if(modulo==='empresas'||modulo==='docerias')return perfil?.cargo==='dev';
+  if(['usuarios','permissoes','cancelados'].includes(modulo))return ['dev','adm'].includes(perfil?.cargo);
+  if(modulo==='solicitacoes')return ['dev','adm'].includes(perfil?.cargo)||
+    ['estoque','financeiro','rh','pedidos','producao'].some(m=>permissoesAtivas[m]);
+  if(modulo==='registro-ponto')return perfil?.cargo!=='dev' && Boolean(permissoesAtivas['registro-ponto']);
+  if(modulo==='rh'||modulo==='financeiro'||modulo==='relatorios'||modulo==='loja-modelos')
+    return perfil?.cargo==='dev'||perfil?.cargo==='adm'||Boolean(permissoesAtivas[modulo]);
+  if(modulo==='estoque-custos')return ['dev','adm'].includes(perfil?.cargo)||Boolean(permissoesAtivas.financeiro);
+  if(modulo==='redes')return ['dev','adm'].includes(perfil?.cargo);
+  if(modulo.startsWith('estoque-'))modulo='estoque';
+  if(modulo==='produtos-prontos')modulo='vitrine';
   return Boolean(permissoesAtivas[modulo]);
 }
 async function atualizarPermissoes(){
@@ -259,7 +262,15 @@ async function atualizarPermissoes(){
 let usuario=null, perfil=null, docerias=[], tenant=null;
 let carrinho=[];
 
-function pode(...cargos) {return perfil && (perfil.cargo === 'dev' || cargos.includes(perfil.cargo));}
+function pode(...cargos){
+  if(!perfil)return false;
+  if(perfil.cargo==='dev'||perfil.cargo==='adm')return true;
+  if(cargos.includes(perfil.cargo))return true;
+  if(!perfil.cargo_empresa_id)return false;
+  const porModulo={atendente:'pedidos',estoquista:'estoque',logistica:'estoque',
+    confeiteiro:'producao',financeiro:'financeiro'};
+  return cargos.some(c=>c!=='adm' && Boolean(permissoesAtivas[porModulo[c]]));
+}
 function aviso(msg, erro=false) {
   const el=$('aviso');
   if(!el) return;
@@ -309,7 +320,7 @@ function requerDoceria(){
 async function lerPerfil(){
   const {data:{user},error}=await db.auth.getUser();
   if(error || !user) return null;
-  const {data:p,error:erro}=await db.from('perfis').select('id,nome_completo,cargo,status,doceria_id').eq('id',user.id).single();
+  const {data:p,error:erro}=await db.from('perfis').select('id,nome_completo,cargo,status,doceria_id,cargo_empresa_id').eq('id',user.id).single();
   if(erro || !p) throw new Error('Perfil não encontrado. Confira se o SQL do Salamandras foi executado.');
   usuario=user; perfil=p;
   return p;
@@ -414,7 +425,7 @@ async function iniciarLogin(){
 async function rotaAposLogin(){
   const p=await lerPerfil();
   if(!p){$('auth-forms').classList.remove('escondido');$('pendente').classList.add('escondido');return;}
-  if(p.status==='aprovado' && p.cargo!=='funcionario'){
+  if(p.status==='aprovado'){
     window.location.replace('painel.html');return;
   }
   $('auth-forms').classList.add('escondido');
@@ -445,7 +456,8 @@ async function iniciarApp(){
     }
     const especificacao=paginas.find(x=>x[0]===pagina);
     if(!especificacao){container(cartao('Página desconhecida','Página não encontrada.'));return;}
-    $('usuario-atual').textContent=`${p.nome_completo||usuario.email} · ${nomeCargo[p.cargo]||p.cargo}`;
+    const nomeCargoReal=p.cargo_empresa_id ? await rpc('api_13_meu_cargo') : (nomeCargo[p.cargo]||p.cargo);
+    $('usuario-atual').textContent=`${p.nome_completo||usuario.email} · ${nomeCargoReal}`;
     on('sair','click',sair);
     docerias=await rpc('api_docerias');
     if(p.cargo==='dev'){
@@ -473,19 +485,23 @@ async function carregarPagina(){
     container(cartao('Acesso negado','Seu cargo ou sua conta não possui permissão para esta aba.'));return;
   }
   if(pagina==='empresas'||pagina==='docerias')return window.Salamandras12.empresas(contexto12());
-  if(pagina==='permissoes')return carregarPermissoes();
-  if(pagina==='usuarios')return carregarUsuarios();
+  if(pagina==='permissoes'){window.location.replace('usuarios.html#cargos');return;}
+  if(pagina==='usuarios')return window.Salamandras13.usuarios(contexto12());
   if(pagina==='redes')return carregarRedes();
   if(requerDoceria())return;
-  if(pagina==='painel')return window.Salamandras12.painel(contexto12());
+  if(pagina==='painel'){await window.Salamandras12.painel(contexto12());
+    if(window.Salamandras13C)await window.Salamandras13C.avisosPainel(contexto12());return;}
   if(pagina==='estoque')return window.Salamandras12.estoque(contexto12());
   if(pagina==='estoque-ingredientes')return carregarEstoque();
   if(pagina.startsWith('estoque-'))return window.Salamandras12.estoqueInterno(pagina,contexto12());
+  if(pagina==='solicitacoes')return window.Salamandras13C.solicitacoes(contexto12());
   if(pagina==='financeiro')return window.Salamandras12.financeiro(contexto12());
+  if(pagina==='rh')return window.Salamandras13.rh(contexto12());
+  if(pagina==='registro-ponto')return window.Salamandras13.ponto(contexto12());
   if(pagina==='loja-modelos')return window.Salamandras12.loja(contexto12());
   if(pagina==='produtos')return carregarProdutos();
   if(pagina==='pedidos')return carregarPedidos();
-  if(pagina==='cancelados')return carregarCancelados();
+  if(pagina==='cancelados'){window.location.replace('pedidos.html#cancelados');return;}
   if(pagina==='clientes')return carregarClientes();
   if(pagina==='producao')return carregarProducao();
   if(pagina==='produtos-prontos'||pagina==='vitrine')return carregarVitrine();
@@ -778,200 +794,8 @@ async function carregarDocerias(){
   });
 }
 
-async function carregarUsuarios(){
-  if(!pode('adm')){container(cartao('Acesso negado','Apenas DEV e ADM.'));return;}
-  const [registros,bloqueados]=await Promise.all([
-    rpc('api_usuarios'),
-    rpc('api_emails_bloqueados')
-  ]);
-  const usuarios=Array.isArray(registros)?registros:[];
-  const listaBloqueados=Array.isArray(bloqueados)?bloqueados:[];
-  const cargos=perfil.cargo==='dev'
-    ? ['adm','financeiro','logistica','confeiteiro','atendente']
-    : ['financeiro','logistica','confeiteiro','atendente'];
-  const ordenados=[...usuarios].sort((a,b)=>
-    Number(b.status==='pendente')-Number(a.status==='pendente') ||
-    String(a.nome_completo||a.email||'').localeCompare(String(b.nome_completo||b.email||''),'pt-BR')
-  );
-  const linhas=ordenados.map(u=>{
-    const restrito=u.id===usuario.id || u.cargo==='dev' ||
-      (perfil.cargo==='adm' && u.cargo==='adm');
-    const doceria=perfil.cargo==='dev'
-      ? `<select data-doceria="${esc(u.id)}"><option value="">Selecionar empresa</option>${selectOpcoes(docerias,d=>d.id,d=>d.nome,u.doceria_id)}</select>`
-      : esc(u.doceria_nome||'Sem empresa');
-    let comandos='—';
-    if(!restrito){
-      const banimento=`<button type="button" class="small acao-bloqueio-permanente" data-permanente="${esc(u.id)}"
-        title="Bloqueia este e-mail e retira da lista principal">Bloquear permanente</button>`;
-      if(u.status==='pendente'){
-        comandos=`<div class="acoes"><select data-aprovar-cargo="${esc(u.id)}">${cargos.map(c=>
-          `<option value="${c}">${esc(nomeCargo[c])}</option>`).join('')}</select>
-          <button type="button" class="small" data-usuario="${esc(u.id)}" data-decisao="aprovado">Aprovar</button>
-          <button type="button" class="small sec" data-usuario="${esc(u.id)}" data-decisao="rejeitado">Rejeitar</button>
-          ${banimento}</div>`;
-      }else if(['aprovado','bloqueado'].includes(u.status)){
-        comandos=`<div class="acoes">
-          <select data-cargo-novo="${esc(u.id)}">${cargos.map(c=>
-            `<option value="${c}" ${u.cargo===c?'selected':''}>${esc(nomeCargo[c])}</option>`).join('')}</select>
-          <button type="button" class="small" data-usuario="${esc(u.id)}" data-salvar-cargo>Alterar cargo</button>
-          <button type="button" class="small acao-bloquear" data-usuario="${esc(u.id)}"
-            data-bloquear="${u.status==='aprovado'}">${u.status==='aprovado'?'Bloquear':'Desbloquear'}</button>
-          <button type="button" class="small acao-excluir-acesso" data-usuario="${esc(u.id)}" data-remover-acesso>Excluir acesso</button>
-          ${banimento}
-        </div>`;
-      }else if(u.status==='rejeitado'){
-        comandos=`<div class="acoes"><span class="muted">Pode solicitar novo cadastro</span>${banimento}</div>`;
-      }
-    }
-    return `<tr><td><strong>${esc(u.nome_completo||'Nome não informado')}</strong><br><small>${esc(u.email||'')}</small></td>
-      <td>${badge(u.status)}</td><td>${esc(nomeCargo[u.cargo]||u.cargo)}</td><td>${doceria}</td><td>${comandos}</td></tr>`;
-  }).join('');
-
-  const linhasBloqueados=listaBloqueados.map(b=>`<tr>
-    <td><strong>${esc(b.nome_completo||'Sem nome')}</strong><br><small>${esc(b.email)}</small></td>
-    <td>${esc(b.doceria_nome||'Sem empresa')}</td>
-    <td>${dataBR(b.created_at)}</td>
-    <td><button type="button" class="small acao-desbloquear" data-desbloquear-permanente="${esc(b.id)}">
-      Desbloquear e permitir nova solicitação</button></td>
-  </tr>`).join('');
-  container(
-    cartao('Usuários e acesso',`
-      <p class="muted">Bloquear = suspensão temporária. Excluir acesso = cancela a aprovação e permite solicitar novamente com o mesmo e-mail e senha. Bloquear permanente = impede acesso e retira da lista principal. Nenhuma ação apaga o histórico de pedidos.</p>
-      <p><button id="atualizar-usuarios" type="button" class="sec">Atualizar listas</button></p>
-      ${tabela(['Nome / E-mail','Status','Cargo','Doceria','Ações'],linhas)}`)+
-    cartao(`E-mails bloqueados permanentemente (${listaBloqueados.length})`,`
-      <p class="muted">Somente DEV e ADM podem consultar e desbloquear, dentro de suas permissões. Desbloquear não aprova automaticamente o acesso.</p>
-      <label for="buscar-bloqueados">Pesquisar e-mail bloqueado</label>
-      <input id="buscar-bloqueados" type="search" placeholder="Nome ou e-mail" autocomplete="off">
-      <div id="lista-bloqueados">${tabela(['Nome / E-mail','Doceria','Bloqueado em','Ação'],linhasBloqueados)}</div>`)
-  );
-  on('atualizar-usuarios','click',()=>carregarUsuarios().catch(falha));
-  on('buscar-bloqueados','input',()=>{
-    const pesquisa=$('buscar-bloqueados').value.trim().toLocaleLowerCase('pt-BR');
-    $('lista-bloqueados').querySelectorAll('tbody tr').forEach(tr=>{
-      tr.hidden=!tr.textContent.toLocaleLowerCase('pt-BR').includes(pesquisa);
-    });
-  });
-  document.querySelectorAll('[data-decisao]').forEach(b=>b.addEventListener('click',async()=>{
-    if(!confirm('Confirma esta decisão sobre o cadastro?'))return;
-    try{
-      const id=b.dataset.usuario;
-      aviso(await rpc('api_decidir_usuario',{
-        p_usuario:id,p_decisao:b.dataset.decisao,
-        p_cargo:document.querySelector(`[data-aprovar-cargo="${id}"]`)?.value||'atendente',
-        p_doceria:perfil.cargo==='dev'?(document.querySelector(`[data-doceria="${id}"]`)?.value||null):tenant
-      }));
-      await carregarUsuarios();
-    }catch(e){falha(e);}
-  }));
-  document.querySelectorAll('[data-salvar-cargo]').forEach(b=>b.addEventListener('click',async()=>{
-    if(!confirm('Alterar o cargo deste funcionário?'))return;
-    try{
-      const id=b.dataset.usuario;
-      aviso(await rpc('api_alterar_cargo',{
-        p_usuario:id,p_cargo:document.querySelector(`[data-cargo-novo="${id}"]`).value
-      }));
-      await carregarUsuarios();
-    }catch(e){falha(e);}
-  }));
-  document.querySelectorAll('[data-bloquear]').forEach(b=>b.addEventListener('click',async()=>{
-    const bloquear=b.dataset.bloquear==='true';
-    if(!confirm(bloquear
-      ?'Suspender temporariamente este funcionário? Ele não terá acesso até ser desbloqueado.'
-      :'Restaurar o acesso deste funcionário?'))return;
-    try{
-      aviso(await rpc('api_bloquear_usuario',{
-        p_usuario:b.dataset.usuario,p_bloquear:bloquear
-      }));
-      await carregarUsuarios();
-    }catch(e){falha(e);}
-  }));
-  document.querySelectorAll('[data-remover-acesso]').forEach(b=>b.addEventListener('click',async()=>{
-    if(!confirm('EXCLUIR ACESSO: cancelar a aprovação do usuário? Ele perderá o acesso ao ERP, mas poderá solicitar uma nova aprovação com este e-mail. O histórico ficará preservado.'))return;
-    try{
-      aviso(await rpc('api_remover_acesso',{p_usuario:b.dataset.usuario}));
-      await carregarUsuarios();
-    }catch(e){falha(e);}
-  }));
-  document.querySelectorAll('[data-permanente]').forEach(b=>b.addEventListener('click',async()=>{
-    if(!confirm('BLOQUEIO PERMANENTE: este e-mail será bloqueado e sairá da lista principal. A reversão só será possível na seção E-mails bloqueados permanentemente. Confirmar?'))return;
-    try{
-      aviso(await rpc('api_bloquear_permanente',{p_usuario:b.dataset.permanente}));
-      await carregarUsuarios();
-    }catch(e){falha(e);}
-  }));
-  document.querySelectorAll('[data-desbloquear-permanente]').forEach(b=>b.addEventListener('click',async()=>{
-    if(!confirm('Desbloquear este e-mail? A conta NÃO será aprovada automaticamente; a pessoa precisará solicitar novamente.'))return;
-    try{
-      aviso(await rpc('api_desbloquear_permanente',{p_bloqueio:b.dataset.desbloquearPermanente}));
-      await carregarUsuarios();
-    }catch(e){falha(e);}
-  }));
-}
-
-// Controle de acesso por cargo ou funcionario (apenas ADM/DEV).
-async function carregarPermissoes(){
-  if(!pode('adm')){container(cartao('Acesso negado','Apenas ADM ou DEV.'));return;}
-  if(requerDoceria())return;
-  const config=await rpc('api_config_permissoes',{p_doceria:tenant});
-  const cargos=['logistica','confeiteiro','atendente','funcionario'];
-  const opcoes=[['','Padrão do cargo'],['true','Permitir'],['false','Bloquear']];
-  const selecao=(tipo,modulo,chave,atual)=>`<select data-perm-${tipo}="${esc(modulo)}" data-chave="${esc(chave)}">
-    ${opcoes.map(([v,label])=>`<option value="${v}" ${atual===v?'selected':''}>${label}</option>`).join('')}</select>`;
-  const cargosTabela=modulosEquipe.map(([mod,rotulo])=>`<tr><td>${esc(rotulo)}</td>
-     ${cargos.map(c=>{
-      const r=(config.cargos||[]).find(x=>x.cargo===c&&x.modulo===mod);
-      return `<td>${selecao('cargo',mod,c,r?String(r.permitido):'')}</td>`;
-     }).join('')}</tr>`).join('');
-  const lista=(config.usuarios||[]).filter(u=>u.cargo!=='dev'&&u.cargo!=='adm');
-  container(cartao('Permissões por cargo',`
-    <p class="muted">Estas opções definem quais abas cada cargo pode visualizar. "Padrão" mantém as permissões originais. Ações críticas exigem cargo autorizado no banco.</p>
-    ${tabela(['Aba',...cargos.map(c=>nomeCargo[c])],cargosTabela)}
-    <button type="button" id="salvar-permissoes-cargo">Salvar permissões dos cargos</button>`)+
-    cartao('Permissões individuais',`<p class="muted">Um ajuste individual prevalece sobre o cargo. Ao mudar o cargo de um funcionário, suas exceções individuais são zeradas.</p>
-      <label for="usuario-permissoes">Funcionário</label>
-      <select id="usuario-permissoes"><option value="">Selecione um funcionário</option>
-        ${selectOpcoes(lista,u=>u.id,u=>`${u.nome_completo||u.email} · ${nomeCargo[u.cargo]}`)}</select>
-      <div id="permissoes-individuais"></div>`)+
-    cartao('Áreas protegidas',`<p>Empresas: somente DEV. Usuários, Redes da loja e Relatórios financeiros: somente ADM/DEV. Essas áreas não podem ser liberadas a funcionários.</p>`));
-  const desenhar=()=>{
-    const uid=$('usuario-permissoes').value;
-    if(!uid){$('permissoes-individuais').innerHTML='<p class="muted">Escolha um funcionário acima.</p>';return;}
-    const linhas=modulosEquipe.map(([mod,rotulo])=>{
-      const r=(config.pessoas||[]).find(x=>x.usuario_id===uid&&x.modulo===mod);
-      return `<tr><td>${esc(rotulo)}</td><td>${selecao('usuario',mod,uid,r?String(r.permitido):'')}</td></tr>`;
-    }).join('');
-    $('permissoes-individuais').innerHTML=tabela(['Aba','Acesso'],linhas)+
-      '<p><button type="button" id="salvar-permissoes-usuario">Salvar permissões do funcionário</button></p>';
-    on('salvar-permissoes-usuario','click',async()=>{
-      try{
-        const selecionados=[...document.querySelectorAll('[data-perm-usuario]')];
-        for(const s of selecionados){
-          await rpc('api_salvar_permissao_usuario',{
-            p_doceria:tenant,p_usuario:uid,p_modulo:s.dataset.permUsuario,
-            p_permitido:s.value===''?null:s.value==='true'
-          });
-        }
-        aviso('Permissões individuais salvas. O funcionário deve atualizar a página.');
-        await carregarPermissoes();
-      }catch(e){falha(e);}
-    });
-  };
-  on('usuario-permissoes','change',desenhar);desenhar();
-  on('salvar-permissoes-cargo','click',async()=>{
-    try{
-      const selecionados=[...document.querySelectorAll('[data-perm-cargo]')];
-      for(const s of selecionados){
-        await rpc('api_salvar_permissao_cargo',{
-          p_doceria:tenant,p_cargo:s.dataset.chave,p_modulo:s.dataset.permCargo,
-          p_permitido:s.value===''?null:s.value==='true'
-        });
-      }
-      aviso('Permissões dos cargos salvas. Funcionários devem atualizar a página.');
-      await carregarPermissoes();
-    }catch(e){falha(e);}
-  });
-}
+// Usuarios e cargos foram migrados para rh13.js.
+// O ADM controla os cargos da sua empresa; DEV nao e um funcionario.
 
 async function carregarEstoque(){return carregarCadastros('estoque');}
 async function carregarProdutos(){return carregarCadastros('produtos');}
@@ -1431,7 +1255,23 @@ async function carregarPedidos(){
       ${editarItens?`<button type="button" class="small sec" data-editar-itens="${p.id}">Editar itens</button>`:''}
       </div></td></tr>`;
   }).join('');
-  container(criar+`<div id="cancelamento-pedido"></div><div id="editor-itens-pedido"></div>`+cartao('Pedidos registrados',`<p><button class="sec" id="recarregar-pedidos">Atualizar</button></p>${tabela(['Registrado','Cliente','Itens','Agendado','Total','Status','Ações'],linhas)}`));
+  container(criar+`<div id="cancelamento-pedido"></div><div id="editor-itens-pedido"></div>`+
+    cartao('Pedidos registrados',`<p><button class="sec" id="recarregar-pedidos">Atualizar</button></p>${tabela(['Registrado','Cliente','Itens','Agendado','Total','Status','Ações'],linhas)}`)+
+    (pode('adm')?`<details id="pedidos-cancelados-detalhes" class="card rh13-details"><summary>Consultar pedidos cancelados</summary>
+      <p class="muted">Histórico recolhido por padrão, com justificativas, responsáveis e filtros.</p>
+      <div id="pedidos-cancelados-conteudo">Abra a seção para consultar.</div></details>`:''));
+  const secaoCancelados=$('pedidos-cancelados-detalhes');
+  if(secaoCancelados){
+    secaoCancelados.addEventListener('toggle',()=>{
+      if(secaoCancelados.open&&!secaoCancelados.dataset.carregado){
+        secaoCancelados.dataset.carregado='1';
+        carregarCancelados('pedidos-cancelados-conteudo').catch(err=>{
+          secaoCancelados.dataset.carregado='';falha(err);
+        });
+      }
+    });
+    if(location.hash==='#cancelados')secaoCancelados.open=true;
+  }
   carrinho=[];atualizarCarrinho(produtos);
   const dataInput=document.querySelector('#novo-pedido input[name="data"]');
   if(dataInput){
@@ -1714,7 +1554,7 @@ async function carregarAgenda(){
 }
 
 // ATT 12C — Cancelados fora da lista de pedidos, área exclusiva para ADM e DEV.
-async function carregarCancelados(){
+async function carregarCancelados(alvo='conteudo'){
   if(!pode('adm')){
     container(cartao('Acesso negado','Somente DEV ou ADM podem consultar cancelamentos.'));
     return;
@@ -1722,7 +1562,8 @@ async function carregarCancelados(){
   let paginaAtual=0;
   let filtroAtual='';
   const anoAtual=new Date().getFullYear();
-  container(cartao('Consultar pedidos cancelados',`
+  const mostrarCancelados=alvo==='conteudo'?container:html=>{$(alvo).innerHTML=html};
+  mostrarCancelados(cartao('Consultar pedidos cancelados',`
     <p class="muted">Pedidos cancelados não aparecem na lista operacional. Aqui fica o histórico com justificativas e responsáveis.</p>
     <div class="formgrid">
       <div><label>Ano do cancelamento</label>
@@ -1795,6 +1636,10 @@ async function carregarCancelados(){
 // Informações financeiras disponíveis apenas para ADM e DEV.
 // Totaliza pedidos entregues; não representa Pix confirmado nem lucro.
 async function carregarRelatorios(){
+  if(!pode('adm') && podePagina('relatorios')){
+    container('<h1>Relatórios financeiros</h1><div id="rh13-relatorio-caixa"></div>');
+    await window.Salamandras13.relatorioCaixa(contexto12());return;
+  }
   if(!pode('adm')){
     container(cartao('Acesso negado','Apenas ADM e DEV podem consultar os resultados financeiros.'));
     return;
@@ -1832,12 +1677,14 @@ async function carregarRelatorios(){
         <td>${reais(d.total)}</td><td>${Number(d.pedidos||0)}</td>
       </tr>`).join(''))}
       ${graficoCancelamentos(cancelamentosAno)}
-      <p><a href="cancelados.html">Consultar todos os pedidos cancelados e suas justificativas</a></p>
+      <p><a href="pedidos.html#cancelados">Consultar todos os pedidos cancelados e suas justificativas</a></p>
     `;
     ativarGraficos($('resultado-relatorio'));
   };
   on('consultar-relatorio','click',()=>carregar().catch(falha));
   await carregar();
+  $('conteudo').insertAdjacentHTML('beforeend','<div id="rh13-relatorio-caixa"></div>');
+  await window.Salamandras13.relatorioCaixa(contexto12());
 }
 
 window.addEventListener('DOMContentLoaded',()=>{

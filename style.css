@@ -369,3 +369,94 @@ html[data-tema-erp="escuro"] .erp12-titulo h1{color:#eef7f4}
 html[data-tema-erp="escuro"] .erp12-tile .erp12-seta{color:#8cebc7}
 @media(max-width:1000px){.erp12-estoque-layout,.erp12-painel-colunas{grid-template-columns:1fr}.erp12-lateral{position:static}.erp12-metricas{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:680px){.erp12-tiles,.erp12-dois{grid-template-columns:1fr}.erp12-tile{min-height:145px}.erp12-metricas{gap:8px}.erp12-metrica{padding:13px 12px}.erp12-metrica b{font-size:19px}.erp12-titulo h1{font-size:24px}.conteudo{padding:17px 14px}.topo{padding:12px 14px}}
+
+/* Salamandras 13 - RH e cargos personalizaveis */
+.rh13-kicker{font-size:11px;font-weight:800;letter-spacing:.12em;color:#3e8475;margin:0 0 10px}
+.rh13-details{margin:14px 0;padding:18px 20px}.rh13-details>summary{cursor:pointer;list-style:none;font-size:17px;font-weight:800;color:inherit;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.rh13-details>summary::after{content:'+';font-size:26px;color:#4a8379}.rh13-details[open]>summary::after{content:'−'}
+.rh13-details>summary::-webkit-details-marker{display:none}.rh13-details[open]>summary{margin-bottom:15px;padding-bottom:15px;border-bottom:1px solid #dde8e4}
+.rh13-form{padding:14px 0;display:grid;gap:12px}.rh13-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.rh13-acoes>select{min-width:120px;max-width:250px}
+.rh13-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:9px;border:1px solid #dfe9e5;border-radius:10px;padding:14px}
+.rh13-checks label,.rh13-checkbox{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:550;margin:0}.rh13-checks input,.rh13-checkbox input{width:auto;accent-color:#176b65}
+.rh13-indicadores{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:14px 0 18px}
+.rh13-indicadores>div{background:var(--card-bg,#fff);border:1px solid #dce6e2;padding:17px;border-radius:12px;display:grid;gap:8px}
+.rh13-indicadores small{color:#647e75}.rh13-indicadores b{font-size:22px}.rh13-warning{color:#a25f1f;font-weight:650;font-size:13px}
+.rh13-ponto-relogio{font-size:42px;font-weight:850;letter-spacing:-.04em;line-height:1.1;padding:14px 0;color:#165f50}
+.rh13-legenda{display:flex;gap:16px;font-size:13px;font-weight:700;margin:18px 0;color:#687b74}.rh13-legenda span:first-child{color:#1c947f}.rh13-legenda span:last-child{color:#d58e47}
+.rh13-grafico{display:grid;grid-template-columns:repeat(12,minmax(40px,1fr));gap:5px;overflow-x:auto;min-height:205px;padding:10px 2px 2px;border-bottom:1px solid #d6e5df}
+.rh13-mes{border:0;background:transparent!important;color:inherit!important;padding:5px 1px;display:flex;flex-direction:column;justify-content:end;gap:8px;align-items:center;min-width:36px}
+.rh13-mes:hover{background:#e5f4ed!important}.rh13-barras{display:flex;align-items:end;justify-content:center;gap:4px;height:145px;width:100%}
+.rh13-barra{display:block;width:16px;max-width:35%;border-radius:5px 5px 0 0;min-height:0}.rh13-barra.entrada{background:#1d907d}.rh13-barra.saida{background:#dc984f}
+.rh13-detalhe{background:#eaf5f0;border-radius:10px;color:#285a4c;padding:15px;margin:14px 0;line-height:1.5}
+@media(max-width:700px){.rh13-grafico{min-width:520px}.rh13-mes{min-width:36px}.rh13-ponto-relogio{font-size:34px}}
+
+
+/* Salamandras 13B - cargos compactos e solicitacoes de Logistica */
+.rh13-cargos-cartoes{display:grid;gap:10px;margin:12px 0 18px}
+.rh13-cargo-card{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;border:1px solid var(--line,#dce6e2);border-radius:12px;padding:14px 16px;background:var(--card-bg,#fff)}
+.rh13-cargo-card>div:first-child{display:grid;gap:6px;min-width:190px;flex:1}
+.rh13-cargo-card strong{font-size:15px}.rh13-cargo-card small{color:#6c8179;font-size:12px}
+.rh13-editor-cargo{margin-top:15px;padding:15px;border:1px solid #cfdfda;border-radius:12px}
+.rh13-editor-cargo>summary{cursor:pointer;font-weight:800;list-style:none;color:inherit}
+.rh13-editor-cargo>summary::-webkit-details-marker{display:none}
+.rh13-editor-cargo[open]>summary{padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid #deebe5}
+.rh13-permissoes-setores{display:grid;gap:10px}
+.rh13-permissao-grupo{border:1px solid #dce7e2;border-radius:10px;overflow:hidden;background:var(--card-bg,#fff)}
+.rh13-permissao-grupo>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px}
+.rh13-permissao-grupo>summary::-webkit-details-marker{display:none}
+.rh13-permissao-grupo>summary>span:first-child{display:grid;gap:5px}
+.rh13-permissao-grupo>summary b{font-size:14px}
+.rh13-permissao-grupo>summary small{font-size:12px;color:#637d74;font-weight:400;line-height:1.4}
+.rh13-grupo-contagem{font-size:11px;font-weight:700;white-space:nowrap;border-radius:999px;padding:6px 9px;color:#276859;background:#e5f3ed}
+.rh13-permissao-itens{padding:12px 15px;display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:10px;border-top:1px solid #e1e9e5}
+.rh13-permissao-itens label{margin:0;display:flex;align-items:center;gap:9px;padding:9px 10px;border:1px solid #e0e8e3;border-radius:8px;cursor:pointer;font-weight:550;font-size:13px}
+.rh13-permissao-itens input{width:auto;flex:none;accent-color:#1c806d}
+.rh13b-overview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}
+.rh13b-overview>div{background:var(--card-bg,#fff);border:1px solid #dce7e2;border-radius:12px;display:grid;gap:4px;padding:16px}
+.rh13b-overview b{font-size:27px;color:#23836f}.rh13b-overview span{font-size:12px;color:#637d74}
+.rh13b-details>summary{cursor:pointer;font-size:16px;font-weight:800;padding:4px 0;list-style:none}
+.rh13b-details>summary::-webkit-details-marker{display:none}.rh13b-details>summary::after{content:'+';float:right;font-size:21px;line-height:1}
+.rh13b-details[open]>summary::after{content:'−'}
+.rh13b-details[open]>summary{border-bottom:1px solid #dce7e2;padding-bottom:12px;margin-bottom:14px}
+.rh13b-duas-colunas{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;align-items:start}
+.rh13b-duas-colunas .card{margin-bottom:0}
+.rh13b-solicitacoes{display:grid;gap:12px}
+.rh13b-solicitacao{padding:14px 16px;border:1px solid #dce6e2;border-radius:11px;background:var(--card-bg,#fff);display:grid;gap:7px}
+.rh13b-pedido-titulo{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rh13b-sub{font-size:13px;font-weight:550;color:#5e756e}
+.rh13b-solicitacao p{margin:2px 0;font-size:13px}.rh13b-solicitacao small{font-size:12px;color:#688079}
+.rh13b-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:5px}
+@media(max-width:520px){.rh13b-overview{grid-template-columns:1fr}.rh13-cargo-card{align-items:flex-start}.rh13-permissao-itens{grid-template-columns:1fr}}
+/* Contraste no modo escuro, sem substituir o tema global */
+html[data-tema-erp="escuro"] .rh13-cargo-card,html[data-tema-erp="escuro"] .rh13-editor-cargo,html[data-tema-erp="escuro"] .rh13-permissao-grupo,html[data-tema-erp="escuro"] .rh13b-solicitacao,html[data-tema-erp="escuro"] .rh13b-overview>div{background:#1c2d33;border-color:#3c5156;color:#ecf4f0}
+html[data-tema-erp="escuro"] .rh13-permissao-itens label{background:#1a2c31;border-color:#3c5156;color:#e0eee6}
+html[data-tema-erp="escuro"] .rh13-permissao-grupo>summary small,html[data-tema-erp="escuro"] .rh13-cargo-card small,html[data-tema-erp="escuro"] .rh13b-solicitacao small,html[data-tema-erp="escuro"] .rh13b-sub{color:#b1c9c2}
+html[data-tema-erp="escuro"] .rh13-grupo-contagem{background:#295347;color:#b7f0d4}
+
+/* SALAMANDRAS 13C | Solicitacoes sem tabelas poluidas */
+.erp13c-cabecalho{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:15px}
+.erp13c-cabecalho p{margin:4px 0 0;color:var(--muted,#69797b)}
+.erp13c-numeros{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+.erp13c-numero{padding:14px;border:1px solid var(--border,#dae2e1);border-radius:14px;background:var(--card,#fff)}
+.erp13c-numero strong{display:block;font-size:1.55rem;font-variant-numeric:tabular-nums}
+.erp13c-numero span{display:block;color:var(--muted,#69797b);font-size:.82rem;margin-top:5px}
+.erp13c-filter{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.erp13c-registro{border:1px solid var(--border,#dae2e1);padding:16px;border-radius:12px;margin-top:11px;background:var(--card,#fff)}
+.erp13c-topo{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.erp13c-sub{color:var(--muted,#687879);font-size:.84rem;margin:5px 0}
+.erp13c-descricao{white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0}
+.erp13c-dados{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.erp13c-dados span{font-size:.8rem;padding:5px 9px;border-radius:8px;background:var(--surface,#eff4f3);max-width:100%;overflow-wrap:anywhere}
+.erp13c-acoes{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.erp13c-titulo{display:flex;align-items:center;gap:8px}
+.erp13c-etiqueta{font-size:.73rem;border:1px solid var(--border,#d5e3de);padding:4px 8px;border-radius:999px}
+.erp13c-registro .tag{max-width:100%}
+.erp13c-secao{margin-top:16px}
+.erp13c-formgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.erp13c-formgrid label{display:flex;flex-direction:column;gap:5px}
+.erp13c-formgrid input,.erp13c-formgrid select,.erp13c-formgrid textarea{width:100%;min-width:0}
+.erp13c-largura{grid-column:1/-1}
+.erp13c-nota{background:var(--surface,#eff4f3);border-radius:12px;padding:12px;font-size:.88rem;line-height:1.5}
+.erp13c-link{display:inline-block;margin-top:8px}
+.erp13c-vazio{margin:12px 0;color:var(--muted,#687879)}
+@media(max-width:680px){.erp13c-filter,.erp13c-formgrid{grid-template-columns:1fr}.erp13c-numeros{gap:6px}.erp13c-numero{padding:10px}.erp13c-numero strong{font-size:1.2rem}}
