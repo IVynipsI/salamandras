@@ -192,3 +192,69 @@ html[data-tema-erp="escuro"] button.acao-desbloquear {
 }
 #lista-bloqueados .tabela tr[hidden] {display:none!important}
 #pedir-novo-cadastro {margin:8px 0 14px}
+
+
+/* ==============================================================
+   SALAMANDRAS ATT 12 — grafico financeiro e botao de tema compacto
+   (nao altera loja.css nem site publico)
+   ============================================================== */
+.alternar-tema-erp,
+html[data-tema-erp="escuro"] .userbar button.alternar-tema-erp,
+html[data-tema-erp="escuro"] .auth .alternar-tema-erp{
+  display:inline-grid;place-items:center;
+  flex:0 0 auto;width:37px;height:37px;min-width:37px;
+  padding:0!important;line-height:1;font-size:19px;
+  border-radius:10px;white-space:nowrap;
+}
+.grafico-vendas.grafico12{
+  min-width:0;width:100%;overflow:visible;
+  padding:20px 22px;border-radius:16px;
+}
+.grafico12 .grafico-titulo{font-size:17px;line-height:1.35;margin:0 0 4px}
+.grafico12-instrucao{font-size:12px;line-height:1.4;color:#607875;margin:0 0 14px}
+.grafico12-corpo{display:grid;grid-template-columns:82px minmax(0,1fr);gap:10px;min-width:0;align-items:start}
+.grafico12-eixo{height:220px;display:flex;flex-direction:column;justify-content:space-between;
+  align-items:flex-end;padding:0 0 0 1px;font-size:11px;line-height:1;color:#597069;font-weight:650;white-space:nowrap}
+.grafico12-eixo span{transform:translateY(-50%)}
+.grafico12-eixo span:last-child{transform:translateY(30%)}
+.grafico12-rolagem{overflow-x:auto;overscroll-behavior-inline:contain;min-width:0;padding:2px 0 4px;scrollbar-width:thin}
+.grafico12-area{position:relative;min-width:680px;height:248px}
+.grafico12-grade{position:absolute;top:0;left:0;right:0;height:220px;pointer-events:none}
+.grafico12-grade span{position:absolute;width:100%;height:0;border-top:1px dashed #c8d8d2}
+.grafico12-meses{height:100%;display:grid;grid-template-columns:repeat(12,minmax(42px,1fr));gap:10px;position:relative}
+.grafico12-mes{min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.grafico12-espaco{height:220px;flex:0 0 220px;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.grafico12-pilha{width:80%;max-width:34px;min-height:0;display:flex;flex-direction:column-reverse;overflow:visible;border-radius:5px 5px 0 0}
+.grafico12-segmento{display:block;width:100%;min-height:0;padding:0!important;margin:0;border:0!important;
+  border-radius:0!important;box-shadow:none!important;cursor:pointer;flex-shrink:0;transition:filter .12s;outline-offset:2px}
+.grafico12-segmento:first-child{border-radius:0 0 0 0}
+.grafico12-segmento:last-child{border-radius:5px 5px 0 0!important}
+.grafico12-segmento:hover,.grafico12-segmento.selecionado{filter:brightness(1.25);outline:2px solid #587e79;z-index:1}
+.grafico12-segmento:focus-visible{outline:3px solid #1a8072;z-index:2}
+.grafico12-mes-botao,.grafico12 .grafico12-mes-botao{background:transparent!important;color:#536c68!important;
+  border:0!important;padding:5px 0 0!important;width:100%;height:28px;font-size:12px;font-weight:750;
+  box-shadow:none!important;cursor:pointer;text-align:center}
+.grafico12-mes-botao:hover,.grafico12-mes-botao.selecionado{color:#17685d!important;text-decoration:underline}
+.grafico12-mes-botao:focus-visible{outline:2px solid #1a8072;outline-offset:1px}
+.grafico12-legenda{display:flex;flex-wrap:wrap;gap:8px 16px;margin:14px 0 0;font-size:12px;color:#4e6965}
+.grafico12-legenda-item{display:inline-flex;align-items:center;gap:6px}
+.grafico12-legenda-item i,.grafico12-bolinha{display:inline-block;flex:none;width:11px;height:11px;border-radius:3px}
+.grafico12-detalhe{display:block!important;margin-top:14px;font-size:13px;line-height:1.5;min-height:65px;font-weight:500;padding:12px 14px}
+.grafico12-detalhe strong{font-size:14px}
+.grafico12-detalhe-itens{display:flex;flex-wrap:wrap;gap:4px 15px;margin-top:5px;font-weight:450}
+.grafico12-detalhe-itens span{display:inline-flex;align-items:center;gap:5px}
+.grafico12-sem-vendas{font-size:12px;color:#688079;margin:8px 0 0}
+.card-vendas-com-grafico{grid-template-columns:minmax(180px,235px) minmax(0,1fr);gap:22px;min-width:0}
+.relatorio-cabecalho{grid-template-columns:minmax(180px,245px) minmax(0,1fr);align-items:start;min-width:0}
+@media(max-width:950px){.card-vendas-com-grafico,.relatorio-cabecalho{grid-template-columns:minmax(0,1fr)}.grafico12-area{min-width:670px}}
+@media(max-width:580px){.grafico-vendas.grafico12{padding:14px 10px}.grafico12-corpo{grid-template-columns:66px minmax(0,1fr);gap:7px}.grafico12-eixo{font-size:10px}}
+html[data-tema-erp="escuro"] .grafico12-instrucao,
+html[data-tema-erp="escuro"] .grafico12-eixo,
+html[data-tema-erp="escuro"] .grafico12-legenda,
+html[data-tema-erp="escuro"] .grafico12-sem-vendas{color:#b7ceca}
+html[data-tema-erp="escuro"] .grafico12-grade span{border-top-color:#39545a}
+html[data-tema-erp="escuro"] .grafico12 .grafico12-mes-botao{color:#bfd5d1!important}
+html[data-tema-erp="escuro"] .grafico12 .grafico12-mes-botao:hover,
+html[data-tema-erp="escuro"] .grafico12 .grafico12-mes-botao.selecionado{color:#9af5d1!important}
+html[data-tema-erp="escuro"] .grafico12-segmento:hover,
+html[data-tema-erp="escuro"] .grafico12-segmento.selecionado{outline-color:#fff9}

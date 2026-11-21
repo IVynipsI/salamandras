@@ -1,4 +1,4 @@
-/* SALAMANDRAS | HTML + JavaScript puro + Supabase. Sem instalação local. */
+/* SALAMANDRAS 12 | ERP: gráfico de vendas por produto e botão de tema compacto. */
 'use strict';
 
 /* SALAMANDRAS 11 — modo claro/escuro do ERP (sem alterar a loja pública).
@@ -13,7 +13,7 @@ function aplicarTemaERP(tema) {
   document.documentElement.setAttribute('data-tema-erp', valor);
   const botao = document.getElementById('alternar-tema-erp');
   if (botao) {
-    botao.textContent = valor === 'escuro' ? '☀️ Modo claro' : '🌙 Modo escuro';
+    botao.textContent = valor === 'escuro' ? '☀️' : '🌙';
     botao.setAttribute('aria-label', valor === 'escuro' ? 'Ativar modo claro' : 'Ativar modo escuro');
     botao.setAttribute('aria-pressed', String(valor === 'escuro'));
     botao.title = valor === 'escuro' ? 'Mudar para modo claro' : 'Mudar para modo escuro';
@@ -62,41 +62,118 @@ const esc = (x) => String(x ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&
 const reais = (n) => Number(n || 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const dataBR = (s) => s ? new Date(s).toLocaleString('pt-BR') : '—';
 const nomeCargo = {dev:'DEV',adm:'ADM',logistica:'Logística',confeiteiro:'Confeiteiro',atendente:'Atendente',funcionario:'Funcionário'};
-// Mini gráfico de vendas, sem dependência externa e sem envio de dados a terceiros.
-const NOMES_MESES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-function graficoVendas(dados,titulo='Vendas por mês'){
-  const valores=Array.from({length:12},(_,i)=>{
-    const registro=(Array.isArray(dados)?dados:[]).find(d=>Number(d.mes)===i+1);
-    return {mes:NOMES_MESES[i],total:Math.max(0,Number(registro?.total||0)),pedidos:Number(registro?.pedidos||0)};
+// SALAMANDRAS 12: barras empilhadas por produto, escala automatica,
+// detalhes ao passar o mouse ou tocar. Sem bibliotecas externas.
+const NOMES_MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const CORES_VENDAS = [
+  '#eba44a','#66c8b5','#e284a9','#8494e1','#c18ac9','#e5816d',
+  '#8fb85e','#64abd8','#d5ac5d','#ae84d0','#5abfc3','#da8984'
+];
+function passoEscalaVendas(maximo){
+  if(maximo<=0)return 10;
+  const ideal=maximo/4;
+  const ordem=Math.pow(10,Math.floor(Math.log10(ideal)));
+  return [1,2,2.5,5,10].map(v=>v*ordem).find(v=>v>=ideal)||10*ordem;
+}
+function corDoProduto(indice){
+  return CORES_VENDAS[indice] || `hsl(${Math.round(indice*137.508)%360} 64% 59%)`;
+}
+function graficoVendas(dados,titulo='Vendas por mês',detalhesProdutos=[]){
+  const vendas=Array.isArray(dados)?dados:[];
+  const detalhamento=Array.isArray(detalhesProdutos)?detalhesProdutos:[];
+  const catalogo=new Map();
+  detalhamento.forEach(m=>{
+    (Array.isArray(m.produtos)?m.produtos:[]).forEach(produto=>{
+      const id=String(produto.produto_id||produto.id||'');
+      if(!id)return;
+      const atual=catalogo.get(id)||{id,nome:String(produto.nome||'Produto sem nome'),valor:0};
+      atual.valor+=Math.max(0,Number(produto.valor)||0);
+      catalogo.set(id,atual);
+    });
   });
-  const maior=Math.max(1,...valores.map(v=>v.total));
-  const barras=valores.map((v,i)=>{
-    const altura=v.total?Math.max(5,Math.round(v.total/maior*100)):0;
-    return `<button type="button" class="grafico-coluna" data-mes-grafico="${i}"
-      title="${esc(v.mes)}: ${esc(reais(v.total))} (${v.pedidos} pedidos)"
-      aria-label="Consultar ${v.mes}: ${reais(v.total)}">
-      <span class="grafico-trilho"><span class="grafico-barra" style="height:${altura}%"></span></span>
-      <span class="grafico-mes">${v.mes}</span>
-    </button>`;
+  const listaProdutos=[...catalogo.values()].sort((a,b)=>b.valor-a.valor||a.nome.localeCompare(b.nome,'pt-BR'));
+  const cores=new Map(listaProdutos.map((p,i)=>[p.id,corDoProduto(i)]));
+  const meses=Array.from({length:12},(_,i)=>{
+    const registro=vendas.find(d=>Number(d.mes)===i+1)||{};
+    const produtoMes=detalhamento.find(d=>Number(d.mes)===i+1)||{};
+    const produtos=(Array.isArray(produtoMes.produtos)?produtoMes.produtos:[])
+      .filter(p=>Number(p.valor)>0).map(p=>({
+        id:String(p.produto_id||p.id||''),nome:String(p.nome||'Produto sem nome'),
+        valor:Math.max(0,Number(p.valor)||0),quantidade:Math.max(0,Number(p.quantidade)||0)
+      })).sort((a,b)=>b.valor-a.valor);
+    const total=Number(registro.total)||0;
+    const somaProdutos=produtos.reduce((s,p)=>s+p.valor,0);
+    // Pedidos antigos sem itens detalhados continuam visiveis, sem inventar um produto.
+    if(total-somaProdutos>0.015){
+      produtos.push({id:'__outros__',nome:'Sem detalhamento / ajustes',valor:total-somaProdutos,quantidade:0});
+    }
+    return {mes:NOMES_MESES[i],total:Math.max(total,somaProdutos,0),pedidos:Number(registro.pedidos)||0,produtos};
+  });
+  const maior=Math.max(0,...meses.map(m=>m.total));
+  const passo=passoEscalaVendas(maior);
+  const teto=passo*4;
+  const formatoEixo=n=>'R$ '+Number(n).toLocaleString('pt-BR',{maximumFractionDigits:2});
+  const eixo=[4,3,2,1,0].map(i=>`<span>${esc(formatoEixo(passo*i))}</span>`).join('');
+  const linhas=[0,25,50,75,100].map(v=>`<span style="top:${v}%"></span>`).join('');
+  const barras=meses.map((m,i)=>{
+    const altura=m.total>0?Math.max(1,m.total/teto*100):0;
+    const pedacos=m.produtos.map(p=>{
+      const cor=p.id==='__outros__'?'#819398':cores.get(p.id)||'#819398';
+      const proporcao=p.valor/m.total*100;
+      const legenda=`${m.mes} · ${p.nome}: ${reais(p.valor)}${p.quantidade>0?' · '+p.quantidade+' unidade(s)':''}`;
+      return `<button type="button" class="grafico12-segmento" style="height:${proporcao.toFixed(5)}%;background:${cor}" data-venda-produto="${esc(p.id)}" data-mes-grafico="${i}" data-venda-nome="${esc(p.nome)}" data-venda-valor="${p.valor.toFixed(2)}" data-venda-quantidade="${p.quantidade}" title="${esc(legenda)}" aria-label="${esc(legenda)}"></button>`;
+    }).reverse().join('');
+    return `<div class="grafico12-mes">
+      <div class="grafico12-espaco"><div class="grafico12-pilha" style="height:${altura.toFixed(5)}%">${pedacos}</div></div>
+      <button type="button" class="grafico12-mes-botao" data-escolher-mes="${i}" data-total-mes="${m.total}" title="${esc(m.mes)}: ${esc(reais(m.total))}" aria-label="Consultar todas as vendas de ${m.mes}">${m.mes}</button>
+    </div>`;
   }).join('');
-  return `<section class="grafico-vendas" aria-label="${esc(titulo)}">
+  const legenda=listaProdutos.map(p=>`<span class="grafico12-legenda-item"><i style="background:${cores.get(p.id)}"></i>${esc(p.nome)}</span>`).join('');
+  const info=maior===0?'<p class="grafico12-sem-vendas">Ainda não há pedidos entregues neste período.</p>':'';
+  return `<section class="grafico-vendas grafico12" aria-label="${esc(titulo)}">
     <h3 class="grafico-titulo">${esc(titulo)}</h3>
-    <div class="grafico-colunas">${barras}</div>
-    <div class="grafico-detalhe" aria-live="polite">Selecione um mês para consultar o valor.</div>
+    <p class="grafico12-instrucao">Passe o mouse sobre uma cor ou toque na barra para ver produto, quantidade e valor.</p>
+    <div class="grafico12-corpo">
+      <div class="grafico12-eixo" aria-label="Escala em reais">${eixo}</div>
+      <div class="grafico12-rolagem"><div class="grafico12-area">
+        <div class="grafico12-grade" aria-hidden="true">${linhas}</div>
+        <div class="grafico12-meses">${barras}</div>
+      </div></div>
+    </div>
+    <div class="grafico12-legenda" aria-label="Cores dos produtos">${legenda||'<span>Sem produtos vendidos</span>'}</div>
+    ${info}
+    <div class="grafico-detalhe grafico12-detalhe" aria-live="polite"></div>
   </section>`;
 }
 function ativarGraficos(raiz=document){
-  raiz.querySelectorAll('.grafico-vendas').forEach(grafico=>{
-    const botoes=[...grafico.querySelectorAll('[data-mes-grafico]')];
-    if(!botoes.length)return;
-    const detalhes=grafico.querySelector('.grafico-detalhe');
-    const selecionarBarra=b=>{
-      botoes.forEach(x=>x.classList.toggle('selecionado',x===b));
-      detalhes.textContent=b.title;
+  raiz.querySelectorAll('.grafico12').forEach(grafico=>{
+    const meses=[...grafico.querySelectorAll('[data-escolher-mes]')];
+    const segmentos=[...grafico.querySelectorAll('[data-venda-produto]')];
+    const detalhe=grafico.querySelector('.grafico12-detalhe');
+    if(!meses.length||!detalhe)return;
+    const escolherMes=b=>{
+      meses.forEach(x=>x.classList.toggle('selecionado',x===b));
+      segmentos.forEach(x=>x.classList.toggle('selecionado',false));
+      const indice=Number(b.dataset.escolherMes);
+      const itens=segmentos.filter(x=>Number(x.dataset.mesGrafico)===indice)
+        .sort((a,b)=>Number(b.dataset.vendaValor)-Number(a.dataset.vendaValor));
+      const resumo=itens.length?itens.map(x=>`<span><i class="grafico12-bolinha" style="background:${x.style.backgroundColor}"></i>${esc(x.dataset.vendaNome)}: ${reais(x.dataset.vendaValor)}${Number(x.dataset.vendaQuantidade)>0?' ('+Number(x.dataset.vendaQuantidade)+' un.)':''}</span>`).join(''):'Nenhuma venda entregue neste mês.';
+      detalhe.innerHTML=`<strong>${esc(NOMES_MESES[indice])} · ${reais(b.dataset.totalMes)}</strong><div class="grafico12-detalhe-itens">${resumo}</div>`;
     };
-    botoes.forEach(b=>b.addEventListener('click',()=>selecionarBarra(b)));
-    const indice=new Date().getMonth();
-    selecionarBarra(botoes[indice]||botoes[botoes.length-1]);
+    const escolherProduto=b=>{
+      const indice=Number(b.dataset.mesGrafico);
+      meses.forEach(x=>x.classList.toggle('selecionado',Number(x.dataset.escolherMes)===indice));
+      segmentos.forEach(x=>x.classList.toggle('selecionado',x===b));
+      detalhe.innerHTML=`<strong>${esc(NOMES_MESES[indice])} · ${reais(meses[indice].dataset.totalMes)}</strong><div class="grafico12-detalhe-itens"><span><i class="grafico12-bolinha" style="background:${b.style.backgroundColor}"></i>${esc(b.dataset.vendaNome)} — <b>${reais(b.dataset.vendaValor)}</b>${Number(b.dataset.vendaQuantidade)>0?' · '+Number(b.dataset.vendaQuantidade)+' unidade(s)':''}</span></div>`;
+    };
+    meses.forEach(b=>b.addEventListener('click',()=>escolherMes(b)));
+    segmentos.forEach(b=>{
+      b.addEventListener('pointerenter',()=>escolherProduto(b));
+      b.addEventListener('focus',()=>escolherProduto(b));
+      b.addEventListener('click',()=>escolherProduto(b));
+    });
+    const inicial=[...meses].reverse().find(b=>Number(b.dataset.totalMes)>0)||meses[new Date().getMonth()]||meses[0];
+    escolherMes(inicial);
   });
 }
 
@@ -364,11 +441,12 @@ async function carregarPainel(){
   if(pode('adm')){
     // O faturamento considera só pedidos ENTREGUES. Não representa Pix confirmado.
     const anoAtual=new Date().getFullYear();
-    const [resumo, avisos, clientes, vendasAno, alertas]=await Promise.all([
+    const [resumo, avisos, clientes, vendasAno, vendasProdutos, alertas]=await Promise.all([
       rpc('api_resumo_vendas',{p_doceria:tenant}),
       selecionar('notificacoes_cortesia'),
       selecionar('clientes','id,nome'),
       rpc('api_relatorio_vendas',{p_doceria:tenant,p_ano:anoAtual}),
+      rpc('api_vendas_produtos_mensais',{p_doceria:tenant,p_ano:anoAtual}),
       rpc('api_alertas_estoque',{p_doceria:tenant})
     ]);
     if(Array.isArray(alertas)&&alertas.length){
@@ -384,7 +462,7 @@ async function carregarPainel(){
           <div class="resumo">${reais(resumo.faturamento_entregue)}</div>
           <p class="muted">Acumulado de pedidos entregues. Não é confirmação de Pix.</p>
         </div>
-        ${graficoVendas(vendasAno,`Vendas mensais de ${anoAtual}`)}
+        ${graficoVendas(vendasAno,`Vendas mensais de ${anoAtual}`,vendasProdutos)}
       </section>
       <section class="card"><h2>Pedidos entregues</h2>
         <div class="resumo">${Number(resumo.pedidos_entregues||0)}</div></section>
@@ -1527,7 +1605,10 @@ async function carregarRelatorios(){
   const carregar=async()=>{
     const ano=Number($('ano-relatorio').value);
     if(!Number.isInteger(ano)||ano<2020||ano>2100){aviso('Informe um ano entre 2020 e 2100.',true);return;}
-    const dados=await rpc('api_relatorio_vendas',{p_doceria:tenant,p_ano:ano});
+    const [dados,produtosDoAno]=await Promise.all([
+      rpc('api_relatorio_vendas',{p_doceria:tenant,p_ano:ano}),
+      rpc('api_vendas_produtos_mensais',{p_doceria:tenant,p_ano:ano})
+    ]);
     const registros=Array.isArray(dados)?dados:[];
     const total=registros.reduce((s,v)=>s+Number(v.total||0),0);
     const quant=registros.reduce((s,v)=>s+Number(v.pedidos||0),0);
@@ -1537,7 +1618,7 @@ async function carregarRelatorios(){
           <div><span class="muted">Vendas entregues em ${ano}</span><div class="resumo">${reais(total)}</div></div>
           <div><span class="muted">Pedidos entregues</span><div class="resumo">${quant}</div></div>
         </div>
-        ${graficoVendas(registros,`Evolução das vendas em ${ano}`)}
+        ${graficoVendas(registros,`Evolução das vendas em ${ano}`,produtosDoAno)}
       </div>
       <h3>Detalhamento por mês</h3>
       ${tabela(['Mês','Vendas entregues','Pedidos'],registros.map(d=>`<tr>
