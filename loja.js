@@ -114,6 +114,7 @@ function desenharProdutos(produtos, telefone) {
     });
     grade.append(card);
   });
+  colocarIconesSociais(grade);
 }
 
 
@@ -200,7 +201,29 @@ function iniciarCarrinho() {
   });
 }
 
+// Marca visual oficial nos links das redes (sem dependência de bibliotecas).
+const ICONE_WHATSAPP = `<svg class="icone-social" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M20.52 3.48A11.86 11.86 0 0 0 12.08 0C5.48 0 .12 5.35.12 11.94c0 2.1.55 4.16 1.6 5.97L0 24l6.25-1.64a11.9 11.9 0 0 0 5.8 1.48h.01c6.59 0 11.96-5.36 11.96-11.95a11.87 11.87 0 0 0-3.5-8.41ZM12.06 21.8a9.8 9.8 0 0 1-5-1.37l-.36-.21-3.7.97.99-3.6-.24-.37a9.8 9.8 0 0 1-1.5-5.25c0-5.42 4.42-9.83 9.85-9.83a9.76 9.76 0 0 1 6.97 2.9 9.77 9.77 0 0 1 2.89 6.96c0 5.43-4.42 9.83-9.9 9.8Zm5.4-7.35c-.3-.15-1.77-.87-2.04-.97-.27-.1-.47-.15-.66.15-.2.3-.77.97-.95 1.16-.17.2-.34.22-.63.07-.3-.15-1.25-.46-2.39-1.48-.88-.78-1.48-1.75-1.65-2.04-.17-.3-.02-.46.13-.6.14-.13.3-.34.44-.51.15-.18.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.66-1.6-.9-2.18-.24-.57-.48-.5-.66-.5h-.56c-.2 0-.52.07-.79.36-.27.3-1.04 1.02-1.04 2.48s1.06 2.87 1.2 3.07c.15.2 2.09 3.19 5.06 4.47.7.3 1.25.48 1.68.62.7.22 1.34.2 1.85.12.56-.08 1.77-.72 2.01-1.41.25-.7.25-1.3.17-1.42-.07-.12-.27-.2-.56-.35Z"/></svg>`;
+const ICONE_INSTAGRAM = `<svg class="icone-social" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="2" width="20" height="20" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="6.4" r="1.2" fill="currentColor"/></svg>`;
+function colocarIconesSociais(raiz=document){
+  raiz.querySelectorAll('a[data-whatsapp],a.produto-link').forEach(a=>{
+    if(!a.querySelector('.icone-social'))a.insertAdjacentHTML('afterbegin',ICONE_WHATSAPP);
+    a.classList.add('link-social');
+  });
+  raiz.querySelectorAll('#topo-instagram,#instagram-link,.nav-links a[href="#instagram"]').forEach(a=>{
+    if(!a.querySelector('.icone-social'))a.insertAdjacentHTML('afterbegin',ICONE_INSTAGRAM);
+    a.classList.add('link-social');
+  });
+}
+function aplicarCorDoceria(cor){
+  if(!/^#[0-9a-fA-F]{6}$/.test(String(cor||'')))return;
+  document.documentElement.style.setProperty('--rosa',cor);
+  const rgb=[1,3,5].map(i=>parseInt(cor.slice(i,i+2),16));
+  const escura='#'+rgb.map(v=>Math.max(0,Math.round(v*.78)).toString(16).padStart(2,'0')).join('');
+  document.documentElement.style.setProperty('--rosa-escuro',escura);
+}
+
 function configurarDoceria(doceria) {
+  aplicarCorDoceria(doceria.cor_site);
   const nome = String(doceria.nome || 'Doceria');
   document.title = nome + ' | Bolos, doces e encomendas';
   $('marca-nome').textContent = nome;
@@ -232,6 +255,7 @@ function configurarDoceria(doceria) {
     $('instagram-link').hidden = true;
   }
   definirWhatsapp(doceria.whatsapp);
+  colocarIconesSociais();
 }
 
 const produtosDemo = [
@@ -284,4 +308,4 @@ async function iniciar() {
   }
 }
 
-document.addEventListener('DOMContentLoaded',()=>{iniciarCarrinho();iniciar();});
+document.addEventListener('DOMContentLoaded',()=>{colocarIconesSociais();iniciarCarrinho();iniciar();});

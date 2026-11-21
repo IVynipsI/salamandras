@@ -1,27 +1,23 @@
 <!doctype html>
 <html lang="pt-BR">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Salamandras | Entrar</title>
-<link rel="stylesheet" href="style.css">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-</head>
-
+<title>Salamandras | Entrar</title><link rel="stylesheet" href="style.css"></head>
 <body data-page="login" class="auth">
   <main class="painel-login">
     <div class="marca">🦎 Salamandras</div>
     <p class="muted">Gestão de docerias — acesso mediante aprovação.</p>
     <div id="aviso" class="aviso" role="status" aria-live="polite"></div>
     <section id="auth-forms" class="authflex">
-      <div><h2>Entrar</h2><form id="form-login">
-        <div><label for="login-email">E-mail</label><input id="login-email" type="email" required autocomplete="email"></div>
-        <div><label for="login-senha">Senha</label><input id="login-senha" type="password" required autocomplete="current-password"></div>
-        <button type="submit">Entrar</button></form></div>
-      <div><h2>Solicitar cadastro</h2><form id="form-cadastro">
-        <div><label for="cad-email">E-mail</label><input id="cad-email" type="email" required autocomplete="email"></div>
-        <div><label for="cad-senha">Nova senha</label><input id="cad-senha" type="password" minlength="8" required autocomplete="new-password"></div>
-        <button type="submit">Solicitar acesso</button>
-        <small>Confirme o e-mail, se solicitado. A conta só será liberada por DEV ou ADM.</small>
-      </form></div>
+      <div><h2>Entrar ou solicitar acesso</h2>
+        <p class="muted">Nome completo, e-mail e senha. Contas novas precisam de aprovação do ADM/DEV.</p>
+        <form id="form-acesso">
+          <div><label for="acesso-nome">Nome completo</label><input id="acesso-nome" type="text" required minlength="5" autocomplete="name" placeholder="Nome e sobrenome"></div>
+          <div><label for="acesso-email">E-mail</label><input id="acesso-email" type="email" required autocomplete="email"></div>
+          <div><label for="acesso-senha">Senha</label><input id="acesso-senha" type="password" required minlength="8" autocomplete="current-password"></div>
+          <button type="submit">Continuar</button>
+          <small>Se já tem conta, entra com a senha. Se for novo, envia uma solicitação que precisa de aprovação. Se esqueceu sua senha, solicite recuperação ao administrador.</small>
+        </form>
+      </div>
     </section>
     <section id="pendente" class="card escondido">
       <h2 id="pendente-titulo">Aguardando aprovação</h2>

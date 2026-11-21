@@ -47,3 +47,10 @@
 .cart-total{display:flex;align-items:center;justify-content:space-between;gap:14px;border-top:1px solid var(--borda);padding-top:13px}.cart-total strong{color:var(--rosa-escuro);font-size:1.4rem}
 .cart-send{cursor:pointer;width:100%;border:0}.cart-send:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:520px){.acoes-topo{gap:4px}.acoes-topo .botao{padding:7px 8px;font-size:.66rem}.botao-carrinho{gap:4px}#carrinho-contagem{width:17px;height:17px;font-size:.64rem}}
+
+/* Salamandras 08: ícones nativos das redes sociais ao lado dos links. */
+.link-social{display:inline-flex;align-items:center;justify-content:center;gap:8px;vertical-align:middle}
+.icone-social{display:inline-block;width:18px;height:18px;flex:none;vertical-align:middle}
+.nav-links .icone-social{width:15px;height:15px}
+.produto-link .icone-social{width:17px;height:17px}
+.instagram-icone{font-size:.62rem;text-transform:uppercase;letter-spacing:.02em;line-height:1.1}
