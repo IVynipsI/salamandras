@@ -65,3 +65,130 @@ textarea{min-height:70px;resize:vertical}
 #buscar-cadastros{max-width:580px}
 #permissoes-individuais{margin-top:18px}
 #permissoes-individuais .tabela td select{min-width:160px}
+
+
+/* =============================================
+   SALAMANDRAS 11 — MODO ESCURO (somente ERP)
+   Controle pelo botao no cabecalho ou no login.
+   ============================================= */
+.alternar-tema-erp {
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  white-space:nowrap;border-radius:9px;padding:9px 13px;
+  font-size:13px;font-weight:750;cursor:pointer;
+  border:1px solid #b8d8d0;background:#e7f6f4;color:#173b35;
+}
+.alternar-tema-erp:hover {filter:brightness(.96)}
+.alternar-tema-erp:focus-visible {outline:3px solid #68beb0;outline-offset:3px}
+.tema-erp-login {display:flex;justify-content:flex-end;margin-bottom:15px}
+.auth .alternar-tema-erp {background:#e9f1ee;color:#184e47}
+
+html[data-tema-erp="escuro"] {
+  color-scheme:dark;
+  color:#e8efed;
+  background:#10191e;
+}
+html[data-tema-erp="escuro"] body {background:#10191e;color:#e8efed}
+html[data-tema-erp="escuro"] a {color:#80d7c1}
+html[data-tema-erp="escuro"] a:hover {color:#b4f2df}
+html[data-tema-erp="escuro"] .topo {background:#0a252a;color:#f4fbf9;border-bottom:1px solid #285058}
+html[data-tema-erp="escuro"] .topo .marca {color:#f4fbf9}
+html[data-tema-erp="escuro"] .subtitulo,
+html[data-tema-erp="escuro"] .userbar small {color:#bdcfcc}
+html[data-tema-erp="escuro"] nav {background:#16262d;border-right-color:#30454a;border-bottom-color:#30454a}
+html[data-tema-erp="escuro"] nav a {color:#c2dad4}
+html[data-tema-erp="escuro"] nav a.ativo,
+html[data-tema-erp="escuro"] nav a:hover {background:#27443f;color:#aaf0d4}
+html[data-tema-erp="escuro"] .conteudo {color:#e8efed}
+html[data-tema-erp="escuro"] .card,
+html[data-tema-erp="escuro"] .auth .painel-login {background:#1b292f;color:#e8efed;border-color:#34484e;box-shadow:0 4px 20px #0003}
+html[data-tema-erp="escuro"] h1,
+html[data-tema-erp="escuro"] h2,
+html[data-tema-erp="escuro"] h3 {color:#eff7f5}
+html[data-tema-erp="escuro"] .muted,
+html[data-tema-erp="escuro"] .mini,
+html[data-tema-erp="escuro"] .auth small {color:#b1c4c2}
+html[data-tema-erp="escuro"] .resumo {color:#93e2ca}
+html[data-tema-erp="escuro"] input,
+html[data-tema-erp="escuro"] select,
+html[data-tema-erp="escuro"] textarea {background:#152329;color:#f3fbf9;border-color:#46636a}
+html[data-tema-erp="escuro"] input::placeholder,
+html[data-tema-erp="escuro"] textarea::placeholder {color:#9db1b3;opacity:1}
+html[data-tema-erp="escuro"] input:focus,
+html[data-tema-erp="escuro"] select:focus,
+html[data-tema-erp="escuro"] textarea:focus {outline:2px solid #7ce0c6;outline-offset:1px}
+html[data-tema-erp="escuro"] select option {background:#152329;color:#eff7f5}
+html[data-tema-erp="escuro"] button {background:#2b806d;color:#f5fffc}
+html[data-tema-erp="escuro"] button:hover {filter:brightness(1.1)}
+html[data-tema-erp="escuro"] button.sec,
+html[data-tema-erp="escuro"] .userbar button,
+html[data-tema-erp="escuro"] .auth .alternar-tema-erp {background:#2b4248;color:#e8f6f2;border:1px solid #42636b}
+html[data-tema-erp="escuro"] button.danger {background:#a84851;color:#fff}
+html[data-tema-erp="escuro"] button:disabled {opacity:.48}
+html[data-tema-erp="escuro"] .tabela {color:#e8efed}
+html[data-tema-erp="escuro"] .tabela th {background:#26383f;color:#d3e8e3;border-color:#40555a}
+html[data-tema-erp="escuro"] .tabela td {border-color:#34484e}
+html[data-tema-erp="escuro"] .tabela tbody tr:hover {background:#23363d}
+html[data-tema-erp="escuro"] .tag {background:#28463d;color:#b8efd4}
+html[data-tema-erp="escuro"] .tag.pendente {background:#584722;color:#ffe19b}
+html[data-tema-erp="escuro"] .tag.bloqueado,
+html[data-tema-erp="escuro"] .tag.rejeitado,
+html[data-tema-erp="escuro"] .tag.cancelado {background:#592e34;color:#ffb9bc}
+html[data-tema-erp="escuro"] .tag.aprovado,
+html[data-tema-erp="escuro"] .tag.entregue,
+html[data-tema-erp="escuro"] .tag.concluida {background:#234b3a;color:#b1f3c1}
+html[data-tema-erp="escuro"] .aviso {background:#214638;color:#e6fff1;border-color:#488e6a}
+html[data-tema-erp="escuro"] .aviso.erro {background:#52272e;color:#ffe9eb;border-color:#c26b77}
+html[data-tema-erp="escuro"] .receita-detalhes {background:#1c3033;border-color:#3d6260}
+html[data-tema-erp="escuro"] .receita-detalhes summary {color:#9bedd3}
+html[data-tema-erp="escuro"] .receita-item {background:#1b292f;border-color:#3d5156}
+html[data-tema-erp="escuro"] .foto-mini {background:#30434a}
+html[data-tema-erp="escuro"] .estoque-baixo {color:#f8bb70}
+html[data-tema-erp="escuro"] .grafico-vendas {background:#192b30;border-color:#3b5559}
+html[data-tema-erp="escuro"] .grafico-titulo {color:#c6eae0}
+html[data-tema-erp="escuro"] .grafico-mes,
+html[data-tema-erp="escuro"] .grafico-legenda {color:#b8ceca}
+html[data-tema-erp="escuro"] .grafico-trilho {border-bottom-color:#4c6c6a}
+html[data-tema-erp="escuro"] .grafico-detalhe {background:#29423f;color:#b9f2db}
+html[data-tema-erp="escuro"] .grafico-coluna {color:#d2e7e0!important}
+html[data-tema-erp="escuro"] .grafico-coluna:hover {background:#315048!important}
+html[data-tema-erp="escuro"] .auth {background:linear-gradient(135deg,#091a20 0%,#153e3c 55%,#10191e 55%)}
+html[data-tema-erp="escuro"] .auth .marca {color:#a0efd6}
+html[data-tema-erp="escuro"] .check-inline {accent-color:#80d7c1}
+@media(max-width:740px) {
+  .alternar-tema-erp {font-size:12px;padding:8px 10px}
+  html[data-tema-erp="escuro"] nav {border-right:0;border-bottom:1px solid #30454a}
+}
+
+
+/* Atualizacao 11 unificada — severidade do bloqueio por cor.
+   Apenas na area de usuarios; o restante do tema permanece igual. */
+button.acao-bloquear {
+  background:#fff0f0!important;color:#9b1c25!important;border:1px solid #e99b9f!important;
+}
+button.acao-bloquear:hover {background:#ffdddd!important}
+button.acao-excluir-acesso {
+  background:#cf3e48!important;color:#fff!important;border:1px solid #ad242f!important;
+}
+button.acao-excluir-acesso:hover {background:#ab2933!important}
+button.acao-bloqueio-permanente {
+  background:#760e1e!important;color:#fff!important;border:1px solid #560714!important;
+}
+button.acao-bloqueio-permanente:hover {background:#500613!important}
+button.acao-desbloquear {
+  background:#e4f0ec!important;color:#17594c!important;border:1px solid #9abfb3!important;
+}
+button.acao-desbloquear:hover {background:#d4e8df!important}
+html[data-tema-erp="escuro"] button.acao-bloquear {
+  background:#522b31!important;color:#ffdadd!important;border:1px solid #a76870!important;
+}
+html[data-tema-erp="escuro"] button.acao-excluir-acesso {
+  background:#b63c49!important;color:#fff!important;border:1px solid #ea6877!important;
+}
+html[data-tema-erp="escuro"] button.acao-bloqueio-permanente {
+  background:#751023!important;color:#fff!important;border:1px solid #bc5365!important;
+}
+html[data-tema-erp="escuro"] button.acao-desbloquear {
+  background:#24453d!important;color:#d8fff1!important;border:1px solid #4e9984!important;
+}
+#lista-bloqueados .tabela tr[hidden] {display:none!important}
+#pedir-novo-cadastro {margin:8px 0 14px}

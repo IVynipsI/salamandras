@@ -1,6 +1,57 @@
 /* SALAMANDRAS | HTML + JavaScript puro + Supabase. Sem instalação local. */
 'use strict';
 
+/* SALAMANDRAS 11 — modo claro/escuro do ERP (sem alterar a loja pública).
+   A preferência fica salva somente neste navegador. */
+const CHAVE_TEMA_ERP = 'salamandras_erp_tema';
+function temaSalvo() {
+  try { return window.localStorage.getItem(CHAVE_TEMA_ERP) === 'escuro' ? 'escuro' : 'claro'; }
+  catch (_) { return 'claro'; }
+}
+function aplicarTemaERP(tema) {
+  const valor = tema === 'escuro' ? 'escuro' : 'claro';
+  document.documentElement.setAttribute('data-tema-erp', valor);
+  const botao = document.getElementById('alternar-tema-erp');
+  if (botao) {
+    botao.textContent = valor === 'escuro' ? '☀️ Modo claro' : '🌙 Modo escuro';
+    botao.setAttribute('aria-label', valor === 'escuro' ? 'Ativar modo claro' : 'Ativar modo escuro');
+    botao.setAttribute('aria-pressed', String(valor === 'escuro'));
+    botao.title = valor === 'escuro' ? 'Mudar para modo claro' : 'Mudar para modo escuro';
+  }
+}
+function iniciarBotaoTemaERP() {
+  // O botão aparece no login e em qualquer tela do ERP que carregue app.js.
+  const destino = document.querySelector('.userbar') || document.querySelector('.painel-login');
+  if (!destino || document.getElementById('alternar-tema-erp')) return;
+  const botao = document.createElement('button');
+  botao.id = 'alternar-tema-erp';
+  botao.type = 'button';
+  botao.className = 'alternar-tema-erp';
+  if (destino.classList.contains('painel-login')) {
+    const area = document.createElement('div');
+    area.className = 'tema-erp-login';
+    area.appendChild(botao);
+    destino.prepend(area);
+  } else {
+    // Antes de Sair, sem modificar os HTMLs das páginas.
+    const sairBotao = document.getElementById('sair');
+    if (sairBotao && sairBotao.parentElement === destino) destino.insertBefore(botao, sairBotao);
+    else destino.appendChild(botao);
+  }
+  botao.addEventListener('click', () => {
+    const novo = document.documentElement.getAttribute('data-tema-erp') === 'escuro' ? 'claro' : 'escuro';
+    try { window.localStorage.setItem(CHAVE_TEMA_ERP, novo); } catch (_) { /* navegação privada */ }
+    aplicarTemaERP(novo);
+  });
+  aplicarTemaERP(temaSalvo());
+}
+// Aplique o tema antes de iniciar a sessão para evitar a tela clara piscando.
+aplicarTemaERP(temaSalvo());
+window.addEventListener('storage', (evento) => {
+  if (evento.key === CHAVE_TEMA_ERP) aplicarTemaERP(temaSalvo());
+});
+
+
 const db = window.supabase.createClient(
   window.SALAMANDRAS_CONFIG.url,
   window.SALAMANDRAS_CONFIG.key
@@ -202,6 +253,25 @@ async function iniciarLogin(){
     $('codigo-convite').value='';
   });
   on('sair-pendente','click',sair);
+  // Reaproveita a conta Auth existente; nao tenta criar um segundo usuario para o mesmo e-mail.
+  const pendente=$('pendente');
+  if(pendente && !$('pedir-novo-cadastro')){
+    const botao=document.createElement('button');
+    botao.type='button';botao.id='pedir-novo-cadastro';
+    botao.className='sec escondido';
+    botao.textContent='Solicitar novo cadastro';
+    const formulario=$('form-convite');
+    if(formulario) formulario.insertAdjacentElement('beforebegin',botao);
+    else pendente.appendChild(botao);
+    botao.addEventListener('click',async()=>{
+      botao.disabled=true;
+      try{
+        const texto=await rpc('api_reenviar_solicitacao');
+        await rotaAposLogin();
+        aviso(texto);
+      }catch(e){falha(e);}finally{botao.disabled=false;}
+    });
+  }
   try{await rotaAposLogin();}catch(e){falha(e);}
 }
 
@@ -213,11 +283,15 @@ async function rotaAposLogin(){
   }
   $('auth-forms').classList.add('escondido');
   $('pendente').classList.remove('escondido');
-  $('pendente-titulo').textContent=p.status==='pendente'?'Aguardando aprovação':`Acesso: ${p.status}`;
+  $('pendente-titulo').textContent=p.status==='pendente'?'Aguardando aprovação'
+    : p.status==='rejeitado'?'Acesso não aprovado':p.status==='bloqueado'?'Acesso suspenso':`Acesso: ${p.status}`;
   $('pendente-texto').textContent=p.status==='pendente'
-    ? 'Seu cadastro existe, mas ainda precisa ser aprovado. Informe o código da doceria para aparecer na lista do ADM, ou aguarde o DEV.'
-    : 'Seu acesso não está disponível. Entre em contato com o administrador.';
+    ? 'Seu cadastro existe, mas ainda precisa ser aprovado. Informe o código de convite da doceria ou aguarde o administrador.'
+    : p.status==='rejeitado'
+      ? 'Sua aprovação foi cancelada ou o cadastro foi rejeitado. Você pode solicitar novamente com este mesmo e-mail e senha.'
+      : 'Seu acesso está bloqueado. Consulte um administrador.';
   $('form-convite').classList.toggle('escondido',p.status!=='pendente');
+  if($('pedir-novo-cadastro'))$('pedir-novo-cadastro').classList.toggle('escondido',p.status!=='rejeitado');
 }
 
 // Aplicativo autenticado: todas as páginas verificam sessão e cargo.
@@ -545,60 +619,133 @@ async function carregarDocerias(){
 }
 
 async function carregarUsuarios(){
-  if(!pode('adm')){container(cartao('Acesso negado','Apenas ADM e DEV podem gerenciar usuários.'));return;}
-  const registros=await rpc('api_usuarios');
-  const ordenados=[...registros].sort((a,b)=>(a.status==='pendente'?0:1)-(b.status==='pendente'?0:1));
+  if(!pode('adm')){container(cartao('Acesso negado','Apenas DEV e ADM.'));return;}
+  const [registros,bloqueados]=await Promise.all([
+    rpc('api_usuarios'),
+    rpc('api_emails_bloqueados')
+  ]);
+  const usuarios=Array.isArray(registros)?registros:[];
+  const listaBloqueados=Array.isArray(bloqueados)?bloqueados:[];
   const cargos=perfil.cargo==='dev'
-    ?['adm','logistica','confeiteiro','atendente']
-    :['logistica','confeiteiro','atendente'];
+    ? ['adm','logistica','confeiteiro','atendente']
+    : ['logistica','confeiteiro','atendente'];
+  const ordenados=[...usuarios].sort((a,b)=>
+    Number(b.status==='pendente')-Number(a.status==='pendente') ||
+    String(a.nome_completo||a.email||'').localeCompare(String(b.nome_completo||b.email||''),'pt-BR')
+  );
   const linhas=ordenados.map(u=>{
-    const proprio=u.id===usuario.id;
-    const restrito=proprio||u.cargo==='dev'||(perfil.cargo==='adm'&&u.cargo==='adm');
-    let comandos='—';
+    const restrito=u.id===usuario.id || u.cargo==='dev' ||
+      (perfil.cargo==='adm' && u.cargo==='adm');
     const doceria=perfil.cargo==='dev'
-      ?`<select data-doceria="${esc(u.id)}"><option value="">Selecionar doceria</option>${selectOpcoes(docerias,d=>d.id,d=>d.nome,u.doceria_id)}</select>`
-      :esc(u.doceria_nome||'Sem doceria');
-    if(u.status==='pendente'&&!restrito){
-      comandos=`<div class="acoes"><select data-aprovar-cargo="${esc(u.id)}">${cargos.map(c=>`<option value="${c}">${esc(nomeCargo[c])}</option>`).join('')}</select>
-        <button class="small" data-usuario="${esc(u.id)}" data-decisao="aprovado">Aprovar</button>
-        <button class="small danger" data-usuario="${esc(u.id)}" data-decisao="rejeitado">Rejeitar</button></div>`;
-    }else if(['aprovado','bloqueado'].includes(u.status)&&!restrito){
-      comandos=`<div class="acoes"><select data-cargo-novo="${esc(u.id)}">${cargos.map(c=>`<option value="${c}" ${u.cargo===c?'selected':''}>${esc(nomeCargo[c])}</option>`).join('')}</select>
-        <button class="small" data-usuario="${esc(u.id)}" data-salvar-cargo>Alterar cargo</button>
-        <button class="small sec" data-usuario="${esc(u.id)}" data-bloquear="${u.status==='aprovado'}">${u.status==='aprovado'?'Bloquear':'Desbloquear'}</button>
-        <button class="small danger" data-usuario="${esc(u.id)}" data-remover-acesso>Remover acesso</button></div>`;
+      ? `<select data-doceria="${esc(u.id)}"><option value="">Selecionar doceria</option>${selectOpcoes(docerias,d=>d.id,d=>d.nome,u.doceria_id)}</select>`
+      : esc(u.doceria_nome||'Sem doceria');
+    let comandos='—';
+    if(!restrito){
+      const banimento=`<button type="button" class="small acao-bloqueio-permanente" data-permanente="${esc(u.id)}"
+        title="Bloqueia este e-mail e retira da lista principal">Bloquear permanente</button>`;
+      if(u.status==='pendente'){
+        comandos=`<div class="acoes"><select data-aprovar-cargo="${esc(u.id)}">${cargos.map(c=>
+          `<option value="${c}">${esc(nomeCargo[c])}</option>`).join('')}</select>
+          <button type="button" class="small" data-usuario="${esc(u.id)}" data-decisao="aprovado">Aprovar</button>
+          <button type="button" class="small sec" data-usuario="${esc(u.id)}" data-decisao="rejeitado">Rejeitar</button>
+          ${banimento}</div>`;
+      }else if(['aprovado','bloqueado'].includes(u.status)){
+        comandos=`<div class="acoes">
+          <select data-cargo-novo="${esc(u.id)}">${cargos.map(c=>
+            `<option value="${c}" ${u.cargo===c?'selected':''}>${esc(nomeCargo[c])}</option>`).join('')}</select>
+          <button type="button" class="small" data-usuario="${esc(u.id)}" data-salvar-cargo>Alterar cargo</button>
+          <button type="button" class="small acao-bloquear" data-usuario="${esc(u.id)}"
+            data-bloquear="${u.status==='aprovado'}">${u.status==='aprovado'?'Bloquear':'Desbloquear'}</button>
+          <button type="button" class="small acao-excluir-acesso" data-usuario="${esc(u.id)}" data-remover-acesso>Excluir acesso</button>
+          ${banimento}
+        </div>`;
+      }else if(u.status==='rejeitado'){
+        comandos=`<div class="acoes"><span class="muted">Pode solicitar novo cadastro</span>${banimento}</div>`;
+      }
     }
-    return `<tr><td><strong>${esc(u.nome_completo||'Nome não informado')}</strong><br><small>${esc(u.email||'')}</small></td><td>${badge(u.status)}</td><td>${esc(nomeCargo[u.cargo]||u.cargo)}</td><td>${doceria}</td><td>${comandos}</td></tr>`;
+    return `<tr><td><strong>${esc(u.nome_completo||'Nome não informado')}</strong><br><small>${esc(u.email||'')}</small></td>
+      <td>${badge(u.status)}</td><td>${esc(nomeCargo[u.cargo]||u.cargo)}</td><td>${doceria}</td><td>${comandos}</td></tr>`;
   }).join('');
-  container(cartao('Usuários e permissões',`<p class="muted">DEV é exclusivo da conta proprietária. ADM gerencia apenas funcionários da própria doceria; só DEV nomeia ADM. Remover acesso bloqueia a conta e preserva auditoria.</p>
-    <button id="atualizar-usuarios" class="sec">Atualizar lista</button>
-    ${tabela(['Nome / E-mail','Status','Cargo','Doceria','Ações'],linhas)}`));
+
+  const linhasBloqueados=listaBloqueados.map(b=>`<tr>
+    <td><strong>${esc(b.nome_completo||'Sem nome')}</strong><br><small>${esc(b.email)}</small></td>
+    <td>${esc(b.doceria_nome||'Sem doceria')}</td>
+    <td>${dataBR(b.created_at)}</td>
+    <td><button type="button" class="small acao-desbloquear" data-desbloquear-permanente="${esc(b.id)}">
+      Desbloquear e permitir nova solicitação</button></td>
+  </tr>`).join('');
+  container(
+    cartao('Usuários e acesso',`
+      <p class="muted">Bloquear = suspensão temporária. Excluir acesso = cancela a aprovação e permite solicitar novamente com o mesmo e-mail e senha. Bloquear permanente = impede acesso e retira da lista principal. Nenhuma ação apaga o histórico de pedidos.</p>
+      <p><button id="atualizar-usuarios" type="button" class="sec">Atualizar listas</button></p>
+      ${tabela(['Nome / E-mail','Status','Cargo','Doceria','Ações'],linhas)}`)+
+    cartao(`E-mails bloqueados permanentemente (${listaBloqueados.length})`,`
+      <p class="muted">Somente DEV e ADM podem consultar e desbloquear, dentro de suas permissões. Desbloquear não aprova automaticamente o acesso.</p>
+      <label for="buscar-bloqueados">Pesquisar e-mail bloqueado</label>
+      <input id="buscar-bloqueados" type="search" placeholder="Nome ou e-mail" autocomplete="off">
+      <div id="lista-bloqueados">${tabela(['Nome / E-mail','Doceria','Bloqueado em','Ação'],linhasBloqueados)}</div>`)
+  );
   on('atualizar-usuarios','click',()=>carregarUsuarios().catch(falha));
+  on('buscar-bloqueados','input',()=>{
+    const pesquisa=$('buscar-bloqueados').value.trim().toLocaleLowerCase('pt-BR');
+    $('lista-bloqueados').querySelectorAll('tbody tr').forEach(tr=>{
+      tr.hidden=!tr.textContent.toLocaleLowerCase('pt-BR').includes(pesquisa);
+    });
+  });
   document.querySelectorAll('[data-decisao]').forEach(b=>b.addEventListener('click',async()=>{
-    if(!confirm('Confirma a decisão sobre este usuário?'))return;
-    try{const id=b.dataset.usuario;
-      aviso(await rpc('api_decidir_usuario',{p_usuario:id,p_decisao:b.dataset.decisao,
+    if(!confirm('Confirma esta decisão sobre o cadastro?'))return;
+    try{
+      const id=b.dataset.usuario;
+      aviso(await rpc('api_decidir_usuario',{
+        p_usuario:id,p_decisao:b.dataset.decisao,
         p_cargo:document.querySelector(`[data-aprovar-cargo="${id}"]`)?.value||'atendente',
-        p_doceria:perfil.cargo==='dev'?(document.querySelector(`[data-doceria="${id}"]`)?.value||null):tenant}));
+        p_doceria:perfil.cargo==='dev'?(document.querySelector(`[data-doceria="${id}"]`)?.value||null):tenant
+      }));
       await carregarUsuarios();
     }catch(e){falha(e);}
   }));
   document.querySelectorAll('[data-salvar-cargo]').forEach(b=>b.addEventListener('click',async()=>{
     if(!confirm('Alterar o cargo deste funcionário?'))return;
-    try{const id=b.dataset.usuario;
-      aviso(await rpc('api_alterar_cargo',{p_usuario:id,
-        p_cargo:document.querySelector(`[data-cargo-novo="${id}"]`).value}));
-      await carregarUsuarios();}catch(e){falha(e);}
+    try{
+      const id=b.dataset.usuario;
+      aviso(await rpc('api_alterar_cargo',{
+        p_usuario:id,p_cargo:document.querySelector(`[data-cargo-novo="${id}"]`).value
+      }));
+      await carregarUsuarios();
+    }catch(e){falha(e);}
   }));
   document.querySelectorAll('[data-bloquear]').forEach(b=>b.addEventListener('click',async()=>{
-    if(!confirm('Confirma alterar o bloqueio deste usuário?'))return;
-    try{aviso(await rpc('api_bloquear_usuario',{p_usuario:b.dataset.usuario,
-      p_bloquear:b.dataset.bloquear==='true'}));await carregarUsuarios();}catch(e){falha(e);}
+    const bloquear=b.dataset.bloquear==='true';
+    if(!confirm(bloquear
+      ?'Suspender temporariamente este funcionário? Ele não terá acesso até ser desbloqueado.'
+      :'Restaurar o acesso deste funcionário?'))return;
+    try{
+      aviso(await rpc('api_bloquear_usuario',{
+        p_usuario:b.dataset.usuario,p_bloquear:bloquear
+      }));
+      await carregarUsuarios();
+    }catch(e){falha(e);}
   }));
   document.querySelectorAll('[data-remover-acesso]').forEach(b=>b.addEventListener('click',async()=>{
-    if(!confirm('Remover acesso? O usuário será BLOQUEADO, mas não perderá o histórico.'))return;
-    try{aviso(await rpc('api_remover_acesso',{p_usuario:b.dataset.usuario}));
-      await carregarUsuarios();}catch(e){falha(e);}
+    if(!confirm('EXCLUIR ACESSO: cancelar a aprovação do usuário? Ele perderá o acesso ao ERP, mas poderá solicitar uma nova aprovação com este e-mail. O histórico ficará preservado.'))return;
+    try{
+      aviso(await rpc('api_remover_acesso',{p_usuario:b.dataset.usuario}));
+      await carregarUsuarios();
+    }catch(e){falha(e);}
+  }));
+  document.querySelectorAll('[data-permanente]').forEach(b=>b.addEventListener('click',async()=>{
+    if(!confirm('BLOQUEIO PERMANENTE: este e-mail será bloqueado e sairá da lista principal. A reversão só será possível na seção E-mails bloqueados permanentemente. Confirmar?'))return;
+    try{
+      aviso(await rpc('api_bloquear_permanente',{p_usuario:b.dataset.permanente}));
+      await carregarUsuarios();
+    }catch(e){falha(e);}
+  }));
+  document.querySelectorAll('[data-desbloquear-permanente]').forEach(b=>b.addEventListener('click',async()=>{
+    if(!confirm('Desbloquear este e-mail? A conta NÃO será aprovada automaticamente; a pessoa precisará solicitar novamente.'))return;
+    try{
+      aviso(await rpc('api_desbloquear_permanente',{p_bloqueio:b.dataset.desbloquearPermanente}));
+      await carregarUsuarios();
+    }catch(e){falha(e);}
   }));
 }
 
@@ -801,7 +948,8 @@ async function carregarCadastros(modo){
     ['Foto','Produto','Preço','Receita por unidade','Físico','Reservado','Disponível','Ação'],pLinhas));
   const estoqueTabela=cartao('Ingredientes em estoque',tabela(
     ['Ingrediente','Saldo','Alerta até','Situação','Ação'],iLinhas));
-  const historico=tabela(['Quando','Tipo','Variação','Antes → Depois','Motivo'],movLinhas.filter(Boolean));
+  // movLinhas ja e uma string HTML criada com .join(''); nao usar .filter() nela.
+  const historico=tabela(['Quando','Tipo','Variação','Antes → Depois','Motivo'],movLinhas);
   const busca=cartao(produtosPagina?'Pesquisar produtos':'Pesquisar ingredientes',
     `<label>Pesquisar pelo nome</label><input id="buscar-cadastros" type="search"
      placeholder="Digite para filtrar os registros..." autocomplete="off">
@@ -1404,6 +1552,7 @@ async function carregarRelatorios(){
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
+  iniciarBotaoTemaERP();
   if(!window.supabase || !window.SALAMANDRAS_CONFIG){
     aviso('Biblioteca ou configuração não carregou. Confira config.js e a conexão à internet.',true);return;
   }
