@@ -221,7 +221,7 @@ function tabelaHistoricoOperacoes(dados){
 
 const paginas = [
   ['painel','Painel'],['usuarios','Usuários'],['permissoes','Permissões'],
-  ['empresas','Empresas'],['redes','Redes da loja'],
+  ['empresas','Empresas'],
   ['estoque','Estoque'],['produtos','Produtos'],
   ['pedidos','Pedidos'],['clientes','Clientes'],
   ['producao','Produção'],['produtos-prontos','Produtos prontos'],
@@ -249,7 +249,7 @@ function podePagina(modulo){
   if(modulo==='rh'||modulo==='financeiro'||modulo==='relatorios'||modulo==='loja-modelos')
     return perfil?.cargo==='dev'||perfil?.cargo==='adm'||Boolean(permissoesAtivas[modulo]);
   if(modulo==='estoque-custos')return ['dev','adm'].includes(perfil?.cargo)||Boolean(permissoesAtivas.financeiro);
-  if(modulo==='redes')return ['dev','adm'].includes(perfil?.cargo);
+  if(modulo==='redes')return podePagina('loja-modelos');
   if(modulo.startsWith('estoque-'))modulo='estoque';
   if(modulo==='produtos-prontos')modulo='vitrine';
   return Boolean(permissoesAtivas[modulo]);
@@ -483,7 +483,7 @@ async function iniciarApp(){
     }
     await atualizarPermissoes();
     await carregarPagina();
-  }catch(err){container(cartao('Erro de inicialização',`<p>${esc(err.message)}</p><p>Confira se executou <code>SQL_12_GRANDE_ATUALIZACAO.sql</code> e atualize a página.</p>`));console.error(err);}
+  }catch(err){container(cartao('Erro de inicialização',`<p>${esc(err.message)}</p><p>Confira o erro apresentado e as migrações SQL 12, 13, 13B, 13C, 13D e 13E.</p>`));console.error(err);}
 }
 function contexto12(){return {rpc,db,tenant,perfil,container,cartao,esc,reais,aviso,falha,
  dataBR,selecionar,selectOpcoes,carregarDocerias,docerias,pode};}
@@ -495,7 +495,7 @@ async function carregarPagina(){
   if(pagina==='empresas'||pagina==='docerias')return window.Salamandras12.empresas(contexto12());
   if(pagina==='permissoes'){window.location.replace('usuarios.html#cargos');return;}
   if(pagina==='usuarios')return window.Salamandras13.usuarios(contexto12());
-  if(pagina==='redes')return carregarRedes();
+  if(pagina==='redes'){location.replace('loja-modelos.html');return;}
   if(requerDoceria())return;
   if(pagina==='painel'){await window.Salamandras12.painel(contexto12());
     if(window.Salamandras13C)await window.Salamandras13C.avisosPainel(contexto12());return;}
@@ -506,7 +506,7 @@ async function carregarPagina(){
   if(pagina==='financeiro')return window.Salamandras12.financeiro(contexto12());
   if(pagina==='rh')return window.Salamandras13.rh(contexto12());
   if(pagina==='registro-ponto')return window.Salamandras13.ponto(contexto12());
-  if(pagina==='loja-modelos')return window.Salamandras12.loja(contexto12());
+  if(pagina==='loja-modelos')return carregarLojaVirtual();
   if(pagina==='produtos')return carregarProdutos();
   if(pagina==='pedidos')return carregarPedidos();
   if(pagina==='cancelados'){window.location.replace('pedidos.html#cancelados');return;}
@@ -641,15 +641,16 @@ function campoForm(nome,rotulo,tipo='text',valor='',extra=''){
 function seletorAtivo(nome,ativo){return `<select name="${nome}"><option value="true" ${ativo?'selected':''}>Ativo</option><option value="false" ${!ativo?'selected':''}>Arquivado/Inativo</option></select>`;}
 
 // Redes sociais da doceria: uma loja não pode editar os links de outra.
-async function carregarRedes(){
+async function carregarRedes(integrada=false){
   if(requerDoceria()) return;
   const rede = await rpc('api_ler_redes_doceria',{p_doceria:tenant});
   if(!rede) throw new Error('Doceria não encontrada.');
-  const configVisual=await rpc('api_config_site',{p_doceria:tenant});
+  let configVisual=null;
+  try{configVisual=await rpc('api_config_site',{p_doceria:tenant});}catch(err){console.warn('Configuração visual:',err.message);}
   const linkPublico = rede.site_publicado && rede.slug
     ? 'loja.html?loja='+encodeURIComponent(rede.slug)
     : '';
-  container(cartao('Instagram e WhatsApp da doceria',`
+  const redesHtml=cartao('Instagram e WhatsApp da empresa',`
     <p class="muted">Cada loja configura seus próprios contatos. Ao salvar, o site público usa os novos dados automaticamente, sem novo deploy.</p>
     <form id="form-redes">
       <div class="formgrid">
@@ -678,7 +679,7 @@ async function carregarRedes(){
       <div><button type="submit">Salvar cor do site</button></div>
     </form>
     ${linkPublico
-      ? `<p><a href="${esc(linkPublico)}" target="_blank" rel="noopener noreferrer">Abrir site público desta doceria ↗</a></p>`
+      ? `<p><a href="${esc(linkPublico)}" target="_blank" rel="noopener noreferrer">Abrir site público desta empresa ↗</a></p>`
       : `<p class="muted">A página ainda não foi publicada. Peça ao DEV para configurar o endereço da loja no módulo Empresas.</p>`}
   `) + cartao('Imagem de capa do site público',`
     <p class="muted">ADM e DEV podem trocar a fotografia principal da loja. Aparece automaticamente no site após atualizar a página.</p>
@@ -700,11 +701,14 @@ async function carregarRedes(){
       <p><label><input type="checkbox" name="remover_capa" class="check-inline"> Remover capa personalizada e voltar à imagem padrão</label></p>
       <button type="submit">Salvar imagem da capa</button>
     </form>
-  `));
+  `);
+  if(integrada) $('conteudo').insertAdjacentHTML('beforeend',redesHtml);
+  else container(redesHtml);
+  const atualizarTela=integrada?carregarLojaVirtual:()=>carregarRedes(false);
   on('form-cor-site','change',()=>{ $('cor-site-previa').style.background=$('form-cor-site').elements.cor.value; });
   form('form-cor-site',async el=>{
     aviso(await rpc('api_atualizar_cor_site',{p_doceria:tenant,p_cor:el.elements.cor.value}));
-    await carregarRedes();
+    await atualizarTela();
   });
   form('form-redes',async el=>{
     const dados=await rpc('api_salvar_redes_doceria',{
@@ -713,7 +717,7 @@ async function carregarRedes(){
       p_instagram:el.elements.instagram.value
     });
     aviso('WhatsApp e Instagram salvos! Reabra o site público para conferir.');
-    await carregarRedes();
+    await atualizarTela();
   });
   form('form-capa-site',async el=>{
     const arquivo=el.elements.capa_camera?.files?.[0] || el.elements.capa?.files?.[0] || null;
@@ -726,12 +730,19 @@ async function carregarRedes(){
     try{
       aviso(await rpc('api_salvar_capa_loja',{p_doceria:tenant,p_caminho:novoCaminho}));
       await limparFotoAntiga(novoCaminho,anterior);
-      await carregarRedes();
+      await atualizarTela();
     }catch(err){
       if(novoArquivo)await limparFotoAntiga(null,novoArquivo);
       throw err;
     }
   });
+}
+
+
+async function carregarLojaVirtual(){
+  if(requerDoceria())return;
+  await window.Salamandras12.loja(contexto12());
+  await carregarRedes(true);
 }
 
 async function carregarDocerias(){

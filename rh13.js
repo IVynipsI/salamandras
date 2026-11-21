@@ -169,14 +169,14 @@ window.Salamandras13 = (() => {
         <div class="rh13-cargos-cartoes">${cargos.map(c=>{
           const mod=protegido(c.modulos),abas=mod.filter(x=>!x.startsWith('acao:')).length,
             acoes=mod.filter(x=>x.startsWith('acao:')).length;
-          return `<article class="rh13-cargo-card"><div><strong>${E(c.nome)}</strong>${c.protegido_dev?'<span class="tag">Cargo principal · DEV</span>':''}<small>${abas} área(s) · ${acoes} aprovação(ões)</small></div>
-            <div class="rh13-acoes">${!c.protegido_dev||ctx.perfil.cargo==='dev'?`<button type="button" class="sec small" data-editar-cargo="${E(c.id)}">Editar</button>
+          return `<article class="rh13-cargo-card"><div><strong>${E(c.nome)}</strong>${c.exclusivo_dev?'<span class="tag">Exclusivo DEV</span>':c.protegido_dev?'<span class="tag">Cargo principal · DEV</span>':''}<small>${abas} área(s) · ${acoes} aprovação(ões)</small></div>
+            <div class="rh13-acoes">${!(c.protegido_dev||c.exclusivo_dev)||ctx.perfil.cargo==='dev'?`<button type="button" class="sec small" data-editar-cargo="${E(c.id)}">Editar</button>
             <button type="button" class="danger small" data-arquivar-cargo="${E(c.id)}">Arquivar</button>`:'<small>Somente DEV pode alterar</small>'}</div></article>`}).join('')||'<p class="muted">Nenhum cargo personalizado cadastrado.</p>'}</div>
         <button class="sec" id="rh13-novo-cargo" type="button">+ Criar novo cargo</button>
         <details class="rh13-editor-cargo" id="rh13-editor-cargo"><summary id="rh13-editor-titulo">Configurar cargo</summary>
           <form id="rh13-form-cargo" class="rh13-form"><input type="hidden" name="cargo_id" value="">
             <label>Nome do cargo<input name="nome" required maxlength="65" placeholder="Ex.: Gerente de Logística"></label>
-            <p class="muted">Abra apenas os setores que deseja configurar. Todos os acessos começam desmarcados para um cargo novo.</p>
+            ${ctx.perfil.cargo==='dev'?`<label><input type="checkbox" name="exclusivo_dev"> Cargo exclusivo do DEV (somente o DEV pode distribuir)</label>`:''}<p class="muted">Abra apenas os setores que deseja configurar. Todos os acessos começam desmarcados para um cargo novo.</p>
             <div class="rh13-permissoes-setores">${gruposPermissoes.map((g,ix)=>`
               <details class="rh13-permissao-grupo"><summary><span><b>${E(g.titulo)}</b><small>${E(g.descricao)}</small></span><span class="rh13-grupo-contagem" data-grupo="${ix}">0 selecionadas</span></summary>
                 <div class="rh13-permissao-itens">${g.itens.map(([id,t])=>`<label><input type="checkbox" name="modulo" value="${E(id)}"><span>${E(t)}</span></label>`).join('')}</div>
@@ -267,7 +267,8 @@ window.Salamandras13 = (() => {
     atualizarContagens();
     escutarSubmit(ctx,'rh13-form-cargo',async data=>{
       const nome=String(data.get('nome')||'').trim(),modulos=data.getAll('modulo').map(String),id=data.get('cargo_id')||null;
-      ctx.aviso(await ctx.rpc('api_13_cargo_salvar',{p_empresa:empresa,p_nome:nome,p_modulos:modulos,p_cargo:id}));
+      const exclusivo=!id&&ctx.perfil.cargo==='dev'&&data.get('exclusivo_dev')==='on';
+      ctx.aviso(exclusivo?await ctx.rpc('api_13e_criar_cargo_exclusivo',{p_empresa:empresa,p_nome:nome,p_modulos:modulos}):await ctx.rpc('api_13_cargo_salvar',{p_empresa:empresa,p_nome:nome,p_modulos:modulos,p_cargo:id}));
       await usuarios(ctx,'cargos');
     });
   }

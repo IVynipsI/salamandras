@@ -315,7 +315,7 @@ window.Salamandras12 = (() => {
        <td><span class="erp12-situacao ${E(d.situacao)}">${E(d.situacao)}</span></td><td>${E(d.tema)}</td>
        <td><div class="acoes">
        ${d.situacao==='ativa'?`<button type="button" class="small sec" data-empresa-status="suspensa" data-empresa-id="${E(d.id)}">Bloquear empresa</button>`:`<button type="button" class="small sec" data-empresa-status="ativa" data-empresa-id="${E(d.id)}">Reativar empresa</button>`}
-       ${d.situacao!=='encerrada'?`<button type="button" class="small danger" data-empresa-status="encerrada" data-empresa-id="${E(d.id)}">Remover empresa</button>`:''}
+       ${d.situacao!=='encerrada'?`<button type="button" class="small danger" data-empresa-status="encerrada" data-empresa-id="${E(d.id)}">Remover empresa</button>`:`<button type="button" class="small danger" data-empresa-excluir="${E(d.id)}">Excluir definitivamente</button>`}
        </div></td></tr>`).join(''))}</section>`;
     f('conteudo').insertAdjacentHTML('afterbegin',titulo('Empresas','Gerenciamento exclusivo do DEV'));
     f('conteudo').insertAdjacentHTML('beforeend',html);
@@ -326,6 +326,12 @@ window.Salamandras12 = (() => {
         st==='encerrada'?`Remover ${nome} da operação? O histórico será preservado e todos os acessos bloqueados.`:`Reativar ${nome}?`;
       if(!confirm(msg))return;
       try{await ctx.rpc('api_12_alterar_empresa',{p_empresa:b.dataset.empresaId,p_situacao:st});ctx.aviso('Empresa atualizada');await empresas(ctx)}catch(err){ctx.falha(err)}
+    }));
+    document.querySelectorAll('[data-empresa-excluir]').forEach(b=>b.addEventListener('click',async()=>{
+      const nome=lista.find(x=>x.id===b.dataset.empresaExcluir)?.nome||'';
+      const frase=prompt('Para excluir uma empresa encerrada sem registros vinculados, digite EXCLUIR '+nome);
+      if(frase!=='EXCLUIR '+nome)return;
+      try{ctx.aviso(await ctx.rpc('api_13e_excluir_empresa_definitiva',{p_empresa:b.dataset.empresaExcluir,p_confirmacao:frase}));await empresas(ctx)}catch(err){ctx.falha(err)}
     }));
   }
   async function loja(ctx){
@@ -339,7 +345,7 @@ window.Salamandras12 = (() => {
       <button data-modelo="comercio">Selecionar modelo</button></section></div>
       <section class="card"><h2>Visualização da sua empresa</h2>
       ${slug?`<p><a target="_blank" rel="noopener" href="loja.html?loja=${encodeURIComponent(slug)}">Abrir modelo de doceria ↗</a></p>
-      <p><a target="_blank" rel="noopener" href="loja-geral.html?loja=${encodeURIComponent(slug)}">Abrir comércio geral ↗</a></p>`:'<p class="muted">Cadastre primeiro o endereço público (slug) em Empresas/Redes da loja.</p>'}
+      <p><a target="_blank" rel="noopener" href="loja-geral.html?loja=${encodeURIComponent(slug)}">Abrir comércio geral ↗</a></p>`:'<p class="muted">O endereço público será gerado automaticamente após o SQL 13E.</p>'}
       <small class="muted">A escolha fica salva na empresa. A URL da loja pode ser divulgada depois de conferir o modelo e ativar a publicação.</small></section>`);
     document.querySelectorAll('[data-modelo]').forEach(b=>b.addEventListener('click',async()=>{
       if(!confirm('Definir este modelo de loja para a empresa?'))return;
