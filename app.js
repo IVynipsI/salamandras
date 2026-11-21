@@ -242,7 +242,7 @@ const modulosEquipe = [['painel','Painel'],['estoque','Estoque'],['produtos','Pr
 let permissoesAtivas = {};
 function podePagina(modulo){
   if(modulo==='empresas'||modulo==='docerias')return perfil?.cargo==='dev';
-  if(['usuarios','permissoes','cancelados'].includes(modulo))return ['dev','adm'].includes(perfil?.cargo);
+  if(['usuarios','permissoes','cancelados'].includes(modulo))return ['dev','adm'].includes(perfil?.cargo)||Boolean(perfil?.acesso_total_empresa&&perfil?.doceria_id===tenant);
   if(modulo==='solicitacoes')return ['dev','adm'].includes(perfil?.cargo)||
     ['estoque','financeiro','rh','pedidos','producao'].some(m=>permissoesAtivas[m]);
   if(modulo==='registro-ponto')return perfil?.cargo!=='dev' && Boolean(permissoesAtivas['registro-ponto']);
@@ -264,7 +264,7 @@ let carrinho=[];
 
 function pode(...cargos){
   if(!perfil)return false;
-  if(perfil.cargo==='dev'||perfil.cargo==='adm')return true;
+  if(perfil.cargo==='dev'||perfil.cargo==='adm'||(perfil.acesso_total_empresa&&perfil.doceria_id===tenant))return true;
   if(cargos.includes(perfil.cargo))return true;
   if(!perfil.cargo_empresa_id)return false;
   const porModulo={atendente:'pedidos',estoquista:'estoque',logistica:'estoque',
@@ -320,7 +320,7 @@ function requerDoceria(){
 async function lerPerfil(){
   const {data:{user},error}=await db.auth.getUser();
   if(error || !user) return null;
-  const {data:p,error:erro}=await db.from('perfis').select('id,nome_completo,cargo,status,doceria_id,cargo_empresa_id').eq('id',user.id).single();
+  const {data:p,error:erro}=await db.from('perfis').select('id,nome_completo,cargo,status,doceria_id,cargo_empresa_id,acesso_total_empresa').eq('id',user.id).single();
   if(erro || !p) throw new Error('Perfil não encontrado. Confira se o SQL do Salamandras foi executado.');
   usuario=user; perfil=p;
   return p;
@@ -342,6 +342,14 @@ async function iniciarLogin(){
     $('aviso').style.display='none';
     $('login-email').focus();
   });
+
+  // Escolha de empresa opcional; o DEV recebe toda solicitacao, mesmo sem vinculo.
+  if($('cad-empresa')){
+    try {const empresas=await rpc('api_13d_empresas_cadastro');
+      $('cad-empresa').innerHTML='<option value="">Escolher depois</option>'+
+        (Array.isArray(empresas)?empresas:[]).map(e=>`<option value="${esc(e.id)}">${esc(e.nome)}</option>`).join('');
+    }catch(e){falha(e);}
+  }
 
   // Conta existente: somente email e senha. NUNCA tenta cadastrar se a senha estiver errada.
   form('form-login',async()=>{
@@ -370,7 +378,7 @@ async function iniciarLogin(){
       throw new Error('Crie uma senha com pelo menos 8 caracteres.');
 
     const {data,error}=await db.auth.signUp({
-      email,password,options:{data:{nome_completo:nome}}
+      email,password,options:{data:{nome_completo:nome,empresa_solicitada_id:$('cad-empresa')?.value||null}}
     });
     if(error){
       const msg=String(error.message||'').toLowerCase();
@@ -433,7 +441,7 @@ async function rotaAposLogin(){
   $('pendente-titulo').textContent=p.status==='pendente'?'Aguardando aprovação'
     : p.status==='rejeitado'?'Acesso não aprovado':p.status==='bloqueado'?'Acesso suspenso':`Acesso: ${p.status}`;
   $('pendente-texto').textContent=p.status==='pendente'
-    ? 'Seu cadastro existe, mas ainda precisa ser aprovado. Informe o código de convite da empresa ou aguarde o administrador.'
+    ? 'Seu cadastro aguarda aprovação. O DEV pode localizar sua solicitação mesmo que não tenha escolhido uma empresa.'
     : p.status==='rejeitado'
       ? 'Sua aprovação foi cancelada ou o cadastro foi rejeitado. Você pode solicitar novamente com este mesmo e-mail e senha.'
       : 'Seu acesso está bloqueado. Consulte um administrador.';

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Salamandras | Entrar</title>
-  <link rel="stylesheet" href="style.css?v=13RH">
+  <link rel="stylesheet" href="style.css?v=13C">
 </head>
 <body data-page="login" class="auth">
   <main class="painel-login">
@@ -45,6 +45,11 @@
             <input id="cad-email" name="email" type="email" required autocomplete="email" placeholder="seuemail@exemplo.com">
           </div>
           <div>
+            <label for="cad-empresa">Empresa para solicitar acesso</label>
+            <select id="cad-empresa" name="empresa"><option value="">Carregando empresas...</option></select>
+            <small>Opcional: sem empresa escolhida, o DEV ainda receberá a solicitação.</small>
+          </div>
+          <div>
             <label for="cad-senha">Senha</label>
             <input id="cad-senha" name="senha" type="password" required minlength="8" autocomplete="new-password" placeholder="No mínimo 8 caracteres">
           </div>
@@ -70,7 +75,7 @@
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="mod12.js?v=12G"></script>
-  <script src="app.js?v=13RH"></script>
+  <script src="mod12.js?v=13C"></script>
+  <script src="app.js?v=13C"></script>
 </body>
 </html>

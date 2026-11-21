@@ -47,13 +47,92 @@ window.Salamandras13 = (() => {
     e.preventDefault();const btn=e.currentTarget.querySelector('[type="submit"]');if(btn)btn.disabled=true;
     try{await fn(new FormData(e.currentTarget));}catch(err){ctx.falha(err);}finally{if(btn)btn.disabled=false;}
   });}
+  // Fila global: o DEV nao pertence a nenhuma empresa, mas aprova qualquer pedido.
+  function renderizarFilaGlobal(ctx,pendentes){
+    const empresas=Array.isArray(ctx.docerias)?ctx.docerias:[];
+    const empresaOpts='<option value="">Selecione a empresa</option>'+opts(empresas,x=>x.id,x=>x.nome);
+    return `<section class="card rh13-global-cadastros"><h2>Solicitações para o DEV (${pendentes.length})</h2>
+      <p class="muted">Inclui cadastros de todas as empresas e pedidos ainda sem empresa. Cada autorização exige empresa e cargo.</p>
+      ${pendentes.length?pendentes.map(u=>`<form class="rh13-global-form" data-global-pedido="${E(u.id)}">
+        <div data-empresa-solicitada="${E(u.empresa_id||'')}"><b>${E(u.nome||'Nome não informado')}</b><br><small>${E(u.email)}</small>
+          <br><small>Solicitação: ${E(u.empresa||'Empresa não selecionada')}</small></div>
+        <div class="rh13-global-campos">
+          <label>Empresa<select name="empresa" required>${empresaOpts}</select></label>
+          <label>Cargo<select name="cargo" required><option value="">Escolha a empresa primeiro</option></select></label>
+        </div>
+        <details class="rh13-global-detalhes"><summary>Definir permissões individuais (opcional)</summary>
+          <p class="muted">Se não modificar, valerão as permissões do cargo. Altere somente se quiser personalizar.</p>
+          ${gruposPermissoes.map(g=>`<details><summary>${E(g.titulo)}</summary><div class="rh13-permissao-itens">${g.itens.map(([id,nome])=>`<label><input type="checkbox" name="acesso" value="${E(id)}"><span>${E(nome)}</span></label>`).join('')}</div></details>`).join('')}
+        </details>
+        <div class="rh13-acoes"><button type="button" class="sec small" data-acesso-tudo>acesso a tudo</button>
+          <button type="submit" class="small">Aprovar</button>
+          <button type="button" class="danger small" data-recusa-global>Rejeitar</button></div>
+        <small class="rh13-global-info"></small>
+      </form>`).join(''):'<p class="muted">Não há solicitações pendentes.</p>'}</section>`;
+  }
+  function vincularFilaGlobal(ctx){
+    document.querySelectorAll('[data-global-pedido]').forEach(form=>{
+      const id=form.dataset.globalPedido,empresaSel=form.elements.empresa,cargoSel=form.elements.cargo;
+      const solicitada=form.querySelector('[data-empresa-solicitada]')?.dataset.empresaSolicitada;
+      if(solicitada && [...empresaSel.options].some(o=>o.value===solicitada))empresaSel.value=solicitada;
+      else if(ctx.tenant)empresaSel.value=ctx.tenant;
+      const atualizar=async()=>{
+        cargoSel.innerHTML='<option value="">Carregando cargos...</option>';
+        if(!empresaSel.value){cargoSel.innerHTML='<option value="">Escolha a empresa primeiro</option>';return;}
+        try {const data=await ctx.rpc('api_13_cargos_listar',{p_empresa:empresaSel.value});
+          const cargos=protegido(data?.cargos).filter(c=>c.ativo);
+          cargoSel.innerHTML='<option value="">Selecione um cargo</option>'+
+            opts(cargos,c=>c.id,c=>c.nome)+(ctx.perfil.cargo==='dev'?'<option value="ADM">ADM</option>':'');
+        } catch(e){ctx.falha(e);cargoSel.innerHTML='<option value="">Erro ao carregar cargos</option>';}
+      };
+      empresaSel.addEventListener('change',atualizar);
+      if(empresaSel.value)atualizar();
+      form.dataset.personalizar='nao';form.dataset.total='nao';
+      form.querySelector('[data-acesso-tudo]').addEventListener('click',()=>{
+        form.querySelectorAll('input[name="acesso"]').forEach(c=>c.checked=true);
+        form.dataset.total='sim';form.dataset.personalizar='sim';
+        form.querySelector('.rh13-global-detalhes').open=true;
+        form.querySelector('.rh13-global-info').textContent='Acesso completo somente na empresa escolhida; não concede cargo DEV.';
+      });
+      form.querySelectorAll('input[name="acesso"]').forEach(c=>c.addEventListener('change',()=>{
+        form.dataset.total='nao';form.dataset.personalizar='sim';
+        form.querySelector('.rh13-global-info').textContent='Permissões individuais personalizadas.';
+      }));
+      const decidir=async(decisao)=>{
+        const empresa=empresaSel.value||null;
+        const valor=cargoSel.value;
+        if(decisao==='aprovado'&&(!empresa||!valor))throw new Error('Selecione empresa e cargo.');
+        const detalhes={p_usuario:id,p_empresa:empresa,p_decisao:decisao,
+          p_adm:valor==='ADM',p_cargo:valor&&valor!=='ADM'?valor:null,
+          p_permissoes:form.dataset.personalizar==='sim'?[...form.querySelectorAll('input[name="acesso"]:checked')].map(x=>x.value):null,
+          p_acesso_total:form.dataset.total==='sim'};
+        const mensagem=decisao==='aprovado'?'Aprovar este cadastro?':'Rejeitar esta solicitação?';
+        if(!confirm(mensagem))return;
+        const resultado=await ctx.rpc('api_13d_decidir',detalhes);
+        ctx.aviso(resultado);await usuarios(ctx);
+      };
+      form.addEventListener('submit',async ev=>{
+        ev.preventDefault();const b=form.querySelector('button[type="submit"]');b.disabled=true;
+        try{await decidir('aprovado');}catch(e){ctx.falha(e);}finally{b.disabled=false;}
+      });
+      form.querySelector('[data-recusa-global]').addEventListener('click',async()=>{
+        try{await decidir('rejeitado');}catch(e){ctx.falha(e);}
+      });
+    });
+  }
+
   async function usuarios(ctx,aba=''){
-    const empresa=escopo(ctx);
-    const [usuarios0,cargos0,banidos0]=await Promise.all([
-      ctx.rpc('api_13_usuarios',{p_empresa:empresa}),
-      ctx.rpc('api_13_cargos_listar',{p_empresa:empresa}),
-      ctx.rpc('api_13_bloqueados',{p_empresa:empresa})
+    const empresa=ctx.tenant||null;
+    if(!empresa && ctx.perfil.cargo!=='dev')throw new Error('Selecione uma empresa.');
+    const [usuarios0,cargos0,banidos0,globais]=await Promise.all([
+      empresa?ctx.rpc('api_13_usuarios',{p_empresa:empresa}):Promise.resolve([]),
+      empresa?ctx.rpc('api_13_cargos_listar',{p_empresa:empresa}):Promise.resolve({cargos:[]}),
+      empresa?ctx.rpc('api_13_bloqueados',{p_empresa:empresa}):Promise.resolve([]),
+      ctx.perfil.cargo==='dev'?ctx.rpc('api_13d_pendentes'):Promise.resolve([])
     ]);
+    const globalHtml=ctx.perfil.cargo==='dev'?renderizarFilaGlobal(ctx,protegido(globais)):'';
+    if(!empresa){ctx.container(globalHtml+'<p class="muted">Selecione uma empresa no topo para gerenciar os cargos e funcionários dela.</p>');
+      vincularFilaGlobal(ctx);return;}
     const lista=protegido(usuarios0),cargos=protegido(cargos0?.cargos).filter(c=>c.ativo),
       banidos=protegido(banidos0);
     const opcoes=`<option value="">Selecione um cargo</option>${opts(cargos,c=>c.id,c=>c.nome)}<option value="ADM">ADM (administrador)</option>`;
@@ -70,9 +149,9 @@ window.Salamandras13 = (() => {
       return `<tr><td><b>${E(nome)}</b><br><small>${E(u.email)}</small></td><td>${E(u.cargo_nome)}</td>
        <td><span class="tag ${E(u.status)}">${E(statusLabel(u.status))}</span></td><td>${decisao||mudar||'—'}</td></tr>`;
     };
-    const ativos=lista.filter(u=>!['rejeitado','bloqueado'].includes(u.status));
+    const ativos=lista.filter(u=>!['rejeitado','bloqueado'].includes(u.status) && (ctx.perfil.cargo!=='dev'||u.status!=='pendente'));
     const historico=lista.filter(u=>['rejeitado','bloqueado'].includes(u.status));
-    const blocos=`<div class="rh13-kicker">SALAMANDRAS ERP / ADMINISTRAÇÃO</div><h1>Usuários</h1>
+    const blocos=`${globalHtml}<div class="rh13-kicker">SALAMANDRAS ERP / ADMINISTRAÇÃO</div><h1>Usuários</h1>
       <p class="muted">Gerencie sua equipe, crie cargos e defina as abas que cada cargo pode acessar. O DEV não pertence à equipe.</p>
       ${C('Pesquisar funcionários',`<div class="formgrid"><div><label>Nome ou e-mail</label><input id="rh13-busca" type="search" placeholder="Buscar funcionário"></div>
        <div><label>Cargo</label><select id="rh13-filtro-cargo"><option value="">Todos</option><option value="adm">ADM</option>${opts(cargos,c=>c.id,c=>c.nome)}</select></div>
@@ -90,9 +169,9 @@ window.Salamandras13 = (() => {
         <div class="rh13-cargos-cartoes">${cargos.map(c=>{
           const mod=protegido(c.modulos),abas=mod.filter(x=>!x.startsWith('acao:')).length,
             acoes=mod.filter(x=>x.startsWith('acao:')).length;
-          return `<article class="rh13-cargo-card"><div><strong>${E(c.nome)}</strong><small>${abas} área(s) · ${acoes} aprovação(ões)</small></div>
-            <div class="rh13-acoes"><button type="button" class="sec small" data-editar-cargo="${E(c.id)}">Editar</button>
-            <button type="button" class="danger small" data-arquivar-cargo="${E(c.id)}">Arquivar</button></div></article>`}).join('')||'<p class="muted">Nenhum cargo personalizado cadastrado.</p>'}</div>
+          return `<article class="rh13-cargo-card"><div><strong>${E(c.nome)}</strong>${c.protegido_dev?'<span class="tag">Cargo principal · DEV</span>':''}<small>${abas} área(s) · ${acoes} aprovação(ões)</small></div>
+            <div class="rh13-acoes">${!c.protegido_dev||ctx.perfil.cargo==='dev'?`<button type="button" class="sec small" data-editar-cargo="${E(c.id)}">Editar</button>
+            <button type="button" class="danger small" data-arquivar-cargo="${E(c.id)}">Arquivar</button>`:'<small>Somente DEV pode alterar</small>'}</div></article>`}).join('')||'<p class="muted">Nenhum cargo personalizado cadastrado.</p>'}</div>
         <button class="sec" id="rh13-novo-cargo" type="button">+ Criar novo cargo</button>
         <details class="rh13-editor-cargo" id="rh13-editor-cargo"><summary id="rh13-editor-titulo">Configurar cargo</summary>
           <form id="rh13-form-cargo" class="rh13-form"><input type="hidden" name="cargo_id" value="">
@@ -107,6 +186,7 @@ window.Salamandras13 = (() => {
         </details>
       </details>`;
     ctx.container(blocos);
+    if(ctx.perfil.cargo==='dev')vincularFilaGlobal(ctx);
     if(aba==='cargos'||location.hash==='#cargos')el('rh13-cargos').open=true;
     const atualizarFiltro=()=>{
       const texto=(el('rh13-busca')?.value||'').toLocaleLowerCase('pt-BR'),cid=el('rh13-filtro-cargo')?.value||'',st=el('rh13-filtro-situacao')?.value||'';

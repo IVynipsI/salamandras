@@ -460,3 +460,13 @@ html[data-tema-erp="escuro"] .rh13-grupo-contagem{background:#295347;color:#b7f0
 .erp13c-link{display:inline-block;margin-top:8px}
 .erp13c-vazio{margin:12px 0;color:var(--muted,#687879)}
 @media(max-width:680px){.erp13c-filter,.erp13c-formgrid{grid-template-columns:1fr}.erp13c-numeros{gap:6px}.erp13c-numero{padding:10px}.erp13c-numero strong{font-size:1.2rem}}
+
+/* 13D · aprovacao global do DEV. Campos compactos e setores fechados por padrao. */
+.rh13-global-cadastros{margin-bottom:1.25rem}
+.rh13-global-form{display:grid;gap:.75rem;padding:1rem 0;border-top:1px solid var(--borda,#dbe5e0)}
+.rh13-global-campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.65rem}
+.rh13-global-campos label{display:grid;gap:.3rem}
+.rh13-global-detalhes{padding:.65rem;border-radius:.65rem;border:1px solid var(--borda,#dbe5e0)}
+.rh13-global-detalhes>details{padding:.45rem 0;border-top:1px solid var(--borda,#dbe5e0)}
+.rh13-global-form .rh13-acoes{display:flex;gap:.5rem;flex-wrap:wrap}
+.rh13-global-info{color:var(--cor-secundaria,#60756c)}
