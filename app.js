@@ -129,42 +129,75 @@ async function lerPerfil(){
 }
 async function sair(){await db.auth.signOut();window.location.replace('index.html');}
 
-// Entrada, solicitação e espera por autorização.
+// Login e cadastro separados; contas novas permanecem pendentes ate aprovacao.
 async function iniciarLogin(){
-  form('form-acesso',async()=>{
-    const nome=$('acesso-nome').value.trim().replace(/\s+/g,' ');
-    if(nome.length<5 || nome.split(' ').length<2)throw new Error('Informe seu nome e sobrenome.');
-    const email=$('acesso-email').value.trim().toLowerCase();
-    const password=$('acesso-senha').value;
-    if(password.length<8)throw new Error('Informe uma senha de pelo menos 8 caracteres.');
-    const entrada=await db.auth.signInWithPassword({email,password});
-    if(!entrada.error){await rotaAposLogin();return;}
-    const msg=String(entrada.error.message||'').toLowerCase();
-    if(msg.includes('email not confirmed')||msg.includes('e-mail not confirmed')){
-      throw new Error('Confirme seu e-mail antes de continuar.');
+  // Alternar entre entrar e criar conta sem navegar para outra pagina.
+  on('mostrar-cadastro','click',()=>{
+    $('area-login').classList.add('escondido');
+    $('area-cadastro').classList.remove('escondido');
+    $('aviso').style.display='none';
+    $('cad-nome').focus();
+  });
+  on('mostrar-login','click',()=>{
+    $('area-cadastro').classList.add('escondido');
+    $('area-login').classList.remove('escondido');
+    $('aviso').style.display='none';
+    $('login-email').focus();
+  });
+
+  // Conta existente: somente email e senha. NUNCA tenta cadastrar se a senha estiver errada.
+  form('form-login',async()=>{
+    const email=$('login-email').value.trim().toLowerCase();
+    const password=$('login-senha').value;
+    const {error}=await db.auth.signInWithPassword({email,password});
+    if(error){
+      const msg=String(error.message||'').toLowerCase();
+      if(msg.includes('email not confirmed')||msg.includes('e-mail not confirmed'))
+        throw new Error('Confirme seu e-mail para entrar.');
+      if(msg.includes('invalid login credentials')||msg.includes('invalid credentials'))
+        throw new Error('E-mail ou senha incorretos. Se nao tem conta, clique em Cadastre-se.');
+      throw new Error(error.message);
     }
-    if(!msg.includes('invalid login credentials')&&!msg.includes('invalid credentials')){
-      throw new Error(entrada.error.message);
+    await rotaAposLogin();
+  });
+
+  // Conta nova: nome completo + email + senha. O trigger do SQL 08R cria perfil pendente.
+  form('form-cadastro',async()=>{
+    const nome=$('cad-nome').value.trim().replace(/\s+/g,' ');
+    const email=$('cad-email').value.trim().toLowerCase();
+    const password=$('cad-senha').value;
+    if(nome.length<5||nome.split(' ').length<2)
+      throw new Error('Informe nome e sobrenome.');
+    if(password.length<8)
+      throw new Error('Crie uma senha com pelo menos 8 caracteres.');
+
+    const {data,error}=await db.auth.signUp({
+      email,password,options:{data:{nome_completo:nome}}
+    });
+    if(error){
+      const msg=String(error.message||'').toLowerCase();
+      if(msg.includes('already registered')||msg.includes('already exists'))
+        throw new Error('Este e-mail ja possui cadastro. Volte ao login.');
+      throw new Error(error.message);
     }
-    // Não é possível consultar se um e-mail existe publicamente sem expor contas.
-    // Se a senha estiver errada, o Supabase também pode recusar o cadastro.
-    const cadastro=await db.auth.signUp({email,password,options:{data:{nome_completo:nome}}});
-    if(cadastro.error){
-      throw new Error('Não foi possível entrar ou solicitar acesso. Se já tem conta, confira a senha. '+cadastro.error.message);
-    }
-    if(cadastro.data.session){
+
+    if(data.session){
+      // Mesmo com sessao autenticada, nao entra no ERP sem status aprovado.
       await rotaAposLogin();
     }else{
+      // Supabase pode pedir confirmacao de email, ou responder de forma generica
+      // caso o endereco ja exista. Nunca afirmar que a conta foi criada sem sessao.
       $('auth-forms').classList.add('escondido');
       $('pendente').classList.remove('escondido');
-      $('pendente-titulo').textContent='Solicitação recebida';
-      $('pendente-texto').textContent='Caso sua conta seja nova, confirme o e-mail (se solicitado) e aguarde a aprovação do ADM ou DEV. Se já tinha conta, verifique a senha.';
+      $('pendente-titulo').textContent='Verifique seu cadastro';
+      $('pendente-texto').textContent='Se o e-mail for novo, verifique sua caixa de entrada (caso seja solicitada confirmacao) e aguarde a aprovacao do ADM ou DEV. Se ja tinha uma conta, volte e use Entrar.';
       $('form-convite').classList.add('escondido');
     }
   });
+
   form('form-convite',async()=>{
     const codigo=$('codigo-convite').value.trim();
-    if(!codigo)throw new Error('Digite o código recebido da doceria.');
+    if(!codigo)throw new Error('Digite o codigo recebido da doceria.');
     aviso(await rpc('api_solicitar_doceria',{p_codigo:codigo}));
     $('codigo-convite').value='';
   });
@@ -389,6 +422,26 @@ async function carregarRedes(){
     ${linkPublico
       ? `<p><a href="${esc(linkPublico)}" target="_blank" rel="noopener noreferrer">Abrir site público desta doceria ↗</a></p>`
       : `<p class="muted">A página ainda não foi publicada. Peça ao DEV para configurar o endereço da loja no módulo Docerias.</p>`}
+  `) + cartao('Imagem de capa do site público',`
+    <p class="muted">ADM e DEV podem trocar a fotografia principal da loja. Aparece automaticamente no site após atualizar a página.</p>
+    <div style="margin:12px 0">
+      ${configVisual?.imagem_capa_url
+        ? `<img src="${esc(fotoPublica(configVisual.imagem_capa_url))}" alt="Capa atual"
+            style="max-width:390px;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px">`
+        : '<span class="muted">Nenhuma foto cadastrada; o site mostra a imagem padrão.</span>'}
+    </div>
+    <form id="form-capa-site">
+      <div class="formgrid">
+        <div><label>Escolher imagem de capa (JPG, PNG ou WebP, até 5 MB)</label>
+          <input name="capa" type="file" accept="image/jpeg,image/png,image/webp">
+        </div>
+        <div><label>Ou tirar uma foto com o celular</label>
+          <input name="capa_camera" type="file" accept="image/jpeg,image/png,image/webp" capture="environment">
+        </div>
+      </div>
+      <p><label><input type="checkbox" name="remover_capa" class="check-inline"> Remover capa personalizada e voltar à imagem padrão</label></p>
+      <button type="submit">Salvar imagem da capa</button>
+    </form>
   `));
   on('form-cor-site','change',()=>{ $('cor-site-previa').style.background=$('form-cor-site').elements.cor.value; });
   form('form-cor-site',async el=>{
@@ -403,6 +456,23 @@ async function carregarRedes(){
     });
     aviso('WhatsApp e Instagram salvos! Reabra o site público para conferir.');
     await carregarRedes();
+  });
+  form('form-capa-site',async el=>{
+    const arquivo=el.elements.capa_camera?.files?.[0] || el.elements.capa?.files?.[0] || null;
+    const remover=Boolean(el.elements.remover_capa.checked);
+    if(arquivo && remover)throw new Error('Escolha uma foto ou marque remover; não faça os dois.');
+    if(!arquivo && !remover)throw new Error('Escolha uma imagem para enviar ou marque remover.');
+    const anterior=configVisual?.imagem_capa_url||null;
+    const novoArquivo=await enviarFoto(arquivo,'capa');
+    const novoCaminho=remover?null:novoArquivo;
+    try{
+      aviso(await rpc('api_salvar_capa_loja',{p_doceria:tenant,p_caminho:novoCaminho}));
+      await limparFotoAntiga(novoCaminho,anterior);
+      await carregarRedes();
+    }catch(err){
+      if(novoArquivo)await limparFotoAntiga(null,novoArquivo);
+      throw err;
+    }
   });
 }
 
@@ -600,9 +670,14 @@ async function carregarEstoque(){return carregarCadastros('estoque');}
 async function carregarProdutos(){return carregarCadastros('produtos');}
 async function carregarCadastros(modo){
   const produtosPagina=modo==='produtos';
-  const [produtos, ingredientes, receitas] = await Promise.all([
-    selecionar('produtos'), selecionar('ingredientes'), selecionar('receitas')
-  ]);
+  // Consulta única no backend: a autorização do módulo é checada no banco.
+  // Evita a tela quebrar por consultas isoladas sujeitas a políticas RLS distintas.
+  const catalogo = await rpc('api_catalogo_erp', {
+    p_doceria: tenant, p_modulo: modo
+  });
+  const produtos = Array.isArray(catalogo?.produtos) ? catalogo.produtos : [];
+  const ingredientes = Array.isArray(catalogo?.ingredientes) ? catalogo.ingredientes : [];
+  const receitas = Array.isArray(catalogo?.receitas) ? catalogo.receitas : [];
   const produtosVisiveis=produtos.filter(p=>!p.excluido_em);
   const ingredientesVisiveis=ingredientes.filter(i=>!i.excluido_em);
   const permiteIngredientes = pode('adm','logistica','confeiteiro');
@@ -1165,7 +1240,12 @@ async function carregarProducao(){
     <button type="submit">Criar ordem</button></form>`):'';
   const recLinhas=receitas.map(r=>{
     const i=ingredientes.find(x=>x.id===r.ingrediente_id);
-    return `<tr><td>${esc(nomeProduto(r.produto_id,produtos))}</td><td>${esc(i?.nome||'Não encontrado')}</td><td>${r.quantidade} ${esc(i?.unidade||'')}</td></tr>`;
+    return `<tr><td>${esc(nomeProduto(r.produto_id,produtos))}</td><td>${esc(i?.nome||'Não encontrado')}</td><td>${r.quantidade} ${esc(i?.unidade||'')}</td>
+      <td>${pode('adm')
+        ? `<button type="button" class="small danger" data-excluir-receita="1"
+           data-produto-id="${esc(r.produto_id)}" data-ingrediente-id="${esc(r.ingrediente_id)}"
+           data-ingrediente-nome="${esc(i?.nome||'ingrediente')}">Excluir da ficha</button>`
+        : '—'}</td></tr>`;
   }).join('');
   ordens.sort((a,b)=>b.created_at.localeCompare(a.created_at));
   const ordLinhas=ordens.map(o=>{
@@ -1173,8 +1253,20 @@ async function carregarProducao(){
       o.status==='iniciada'&&editar?[['concluida','Concluir'],['cancelada','Cancelar']]:[];
     return `<tr><td>${dataBR(o.created_at)}</td><td>${esc(nomeProduto(o.produto_id,produtos))}</td><td>${o.quantidade}</td><td>${badge(o.status)}</td><td><div class="acoes">${acoes.map(([st,label])=>`<button class="small ${st==='cancelada'?'danger':''}" data-ordem="${o.id}" data-status="${st}">${label}</button>`).join('')}</div></td></tr>`;
   }).join('');
-  container(alterarReceita+cartao('Fichas técnicas cadastradas',tabela(['Produto','Ingrediente','Quantidade por unidade'],recLinhas))+
+  container(alterarReceita+cartao('Fichas técnicas cadastradas',tabela(['Produto','Ingrediente','Quantidade por unidade','Ação'],recLinhas))+
     criar+cartao('Ordens de produção',tabela(['Data','Produto','Unidades','Status','Ações'],ordLinhas)));
+  // ADM/DEV remove somente o vínculo da receita. Não apaga o ingrediente nem seu estoque.
+  document.querySelectorAll('[data-excluir-receita]').forEach(botao=>botao.addEventListener('click',async()=>{
+    if(!confirm(`Remover ${botao.dataset.ingredienteNome} desta ficha técnica? O ingrediente continuará no estoque.`))return;
+    try{
+      aviso(await rpc('api_definir_receita',{
+        p_produto:botao.dataset.produtoId,
+        p_ingrediente:botao.dataset.ingredienteId,
+        p_quantidade:0
+      }));
+      await carregarProducao();
+    }catch(err){falha(err);}
+  }));
   form('ficha',async el=>{
     if(!el.elements.produto.value || !el.elements.ingrediente.value) throw new Error('Cadastre produtos e ingredientes primeiro.');
     aviso(await rpc('api_definir_receita',{

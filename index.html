@@ -1,35 +1,76 @@
 <!doctype html>
 <html lang="pt-BR">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Salamandras | Entrar</title><link rel="stylesheet" href="style.css"></head>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Salamandras | Entrar</title>
+  <link rel="stylesheet" href="style.css">
+</head>
 <body data-page="login" class="auth">
   <main class="painel-login">
     <div class="marca">🦎 Salamandras</div>
     <p class="muted">Gestão de docerias — acesso mediante aprovação.</p>
     <div id="aviso" class="aviso" role="status" aria-live="polite"></div>
+
     <section id="auth-forms" class="authflex">
-      <div><h2>Entrar ou solicitar acesso</h2>
-        <p class="muted">Nome completo, e-mail e senha. Contas novas precisam de aprovação do ADM/DEV.</p>
-        <form id="form-acesso">
-          <div><label for="acesso-nome">Nome completo</label><input id="acesso-nome" type="text" required minlength="5" autocomplete="name" placeholder="Nome e sobrenome"></div>
-          <div><label for="acesso-email">E-mail</label><input id="acesso-email" type="email" required autocomplete="email"></div>
-          <div><label for="acesso-senha">Senha</label><input id="acesso-senha" type="password" required minlength="8" autocomplete="current-password"></div>
-          <button type="submit">Continuar</button>
-          <small>Se já tem conta, entra com a senha. Se for novo, envia uma solicitação que precisa de aprovação. Se esqueceu sua senha, solicite recuperação ao administrador.</small>
+      <!-- Conta existente: somente e-mail e senha. -->
+      <div id="area-login">
+        <h2>Entrar</h2>
+        <p class="muted">Acesse sua conta do Salamandras.</p>
+        <form id="form-login">
+          <div>
+            <label for="login-email">E-mail</label>
+            <input id="login-email" name="email" type="email" required autocomplete="email" placeholder="seuemail@exemplo.com">
+          </div>
+          <div>
+            <label for="login-senha">Senha</label>
+            <input id="login-senha" name="senha" type="password" required autocomplete="current-password">
+          </div>
+          <button type="submit">Entrar</button>
         </form>
+        <p class="muted">Ainda não tem cadastro?</p>
+        <button id="mostrar-cadastro" type="button" class="sec">Cadastre-se</button>
+      </div>
+
+      <!-- Nova conta: nome completo, e-mail e senha, nessa ordem. -->
+      <div id="area-cadastro" class="escondido">
+        <h2>Criar cadastro</h2>
+        <p class="muted">O acesso será liberado somente após a aprovação de um administrador.</p>
+        <form id="form-cadastro">
+          <div>
+            <label for="cad-nome">Nome completo</label>
+            <input id="cad-nome" name="nome" type="text" required minlength="5" autocomplete="name" placeholder="Nome e sobrenome">
+          </div>
+          <div>
+            <label for="cad-email">E-mail</label>
+            <input id="cad-email" name="email" type="email" required autocomplete="email" placeholder="seuemail@exemplo.com">
+          </div>
+          <div>
+            <label for="cad-senha">Senha</label>
+            <input id="cad-senha" name="senha" type="password" required minlength="8" autocomplete="new-password" placeholder="No mínimo 8 caracteres">
+          </div>
+          <button type="submit">Solicitar cadastro</button>
+        </form>
+        <p class="muted">Já tem cadastro?</p>
+        <button id="mostrar-login" type="button" class="sec">Voltar para Entrar</button>
       </div>
     </section>
-    <section id="pendente" class="card escondido">
+
+    <section id="pendente" class="card escondido" aria-live="polite">
       <h2 id="pendente-titulo">Aguardando aprovação</h2>
       <p id="pendente-texto">Seu cadastro ainda não foi autorizado.</p>
       <form id="form-convite" class="formgrid">
-        <div><label for="codigo-convite">Código de convite da doceria (opcional)</label>
-          <input id="codigo-convite" placeholder="Código fornecido pelo ADM"></div>
+        <div>
+          <label for="codigo-convite">Código de convite da doceria (opcional)</label>
+          <input id="codigo-convite" placeholder="Código fornecido pelo ADM">
+        </div>
         <button type="submit">Vincular solicitação</button>
       </form>
-      <p><button type="button" class="sec" id="sair-pendente">Sair</button></p>
+      <p><button type="button" class="sec" id="sair-pendente">Voltar ao login</button></p>
     </section>
   </main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script><script src="app.js"></script>
-</body></html>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
