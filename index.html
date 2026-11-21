@@ -4,12 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Salamandras | Entrar</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=12G">
 </head>
 <body data-page="login" class="auth">
   <main class="painel-login">
     <div class="marca">🦎 Salamandras</div>
-    <p class="muted">Gestão de docerias — acesso mediante aprovação.</p>
     <div id="aviso" class="aviso" role="status" aria-live="polite"></div>
 
     <section id="auth-forms" class="authflex">
@@ -61,7 +60,7 @@
       <p id="pendente-texto">Seu cadastro ainda não foi autorizado.</p>
       <form id="form-convite" class="formgrid">
         <div>
-          <label for="codigo-convite">Código de convite da doceria (opcional)</label>
+          <label for="codigo-convite">Código de convite da empresa (opcional)</label>
           <input id="codigo-convite" placeholder="Código fornecido pelo ADM">
         </div>
         <button type="submit">Vincular solicitação</button>
@@ -71,6 +70,7 @@
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="app.js"></script>
+  <script src="mod12.js?v=12G"></script>
+  <script src="app.js?v=12G"></script>
 </body>
 </html>

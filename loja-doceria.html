@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff3e8">
+  <meta name="description" content="Bolos, doces e encomendas artesanais. Conheça nosso cardápio e peça pelo WhatsApp.">
+  <title>Doceria | Doces feitos com carinho</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="loja.css?v=12G">
+</head>
+<body>
+  <header class="cabecalho">
+    <a href="#inicio" class="marca" aria-label="Voltar ao início">
+      <span class="marca-icone">D</span><span id="marca-nome">Doceria</span>
+    </a>
+    <nav class="nav-links" aria-label="Menu principal">
+      <a href="#cardapio">Cardápio</a>
+      <a href="#promocao">Promoção</a>
+      <a href="#depoimentos">Depoimentos</a>
+      <a href="#instagram">Instagram</a>
+      <a href="#contato">Onde estamos</a>
+    </nav>
+    <div class="acoes-topo">
+      <button type="button" id="abrir-carrinho" class="botao botao-carrinho" aria-label="Abrir sacola de encomenda">Sacola <span id="carrinho-contagem">0</span></button>
+      <a id="topo-instagram" class="botao botao-instagram" href="#instagram" hidden
+         aria-label="Instagram da doceria" target="_blank" rel="noopener noreferrer">Instagram</a>
+      <a class="botao botao-rosa botao-topo" href="#contato" data-whatsapp
+         aria-label="WhatsApp da doceria">WhatsApp ↗</a>
+    </div>
+  </header>
+
+  <main id="inicio">
+    <section class="hero secao conteiner">
+      <div class="hero-foto">
+        <img id="foto-capa" src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&amp;fit=crop&amp;w=1400&amp;q=85" alt="Bolo artesanal decorado" fetchpriority="high">
+        <div class="etiqueta-girada">Ingredientes<br>selecionados<br>à mão</div>
+      </div>
+      <div class="hero-texto">
+        <div class="sobretitulo">CONFEITARIA ARTESANAL</div>
+        <h1>Bolos e doces feitos para adoçar o dia</h1>
+        <p id="descricao-hero">Um pedacinho de felicidade em cada encomenda. Escolha seu doce favorito e combine os detalhes pelo WhatsApp.</p>
+        <div class="acoes-hero">
+          <a class="botao botao-rosa" href="#contato" data-whatsapp>Encomendar no WhatsApp <span aria-hidden="true">↗</span></a>
+          <a class="botao botao-verde" href="#cardapio">Ver cardápio</a>
+        </div>
+        <div class="hero-selo">✦ Doces artesanais&nbsp; • &nbsp;Momentos especiais</div>
+      </div>
+    </section>
+
+    <section class="secao conteiner" id="cardapio">
+      <div class="secao-titulo">
+        <div>
+          
+          <h2>Nosso cardápio</h2>
+        </div>
+        <p>Os favoritos da casa, prontos para encomendar pelo WhatsApp.</p>
+      </div>
+      <div id="aviso-catalogo" class="aviso-catalogo" role="status">Carregando cardápio...</div>
+      <div id="grade-produtos" class="grade-produtos" aria-live="polite"></div>
+      <p class="observacao">Encomendas e disponibilidade são confirmadas no atendimento. Consulte a data e o horário de retirada.</p>
+    </section>
+
+    <section class="secao conteiner" id="promocao">
+      <div class="promocao">
+        <div class="promocao-topo">
+          <div>
+            <div class="sobretitulo">UM CARINHO A MAIS</div>
+            <h2>Suas compras viram momentos ainda mais doces!</h2>
+            <p>A cada <strong>R$ 350 acumulados em compras entregues</strong>, você conquista uma cortesia de bolo de fubá. Consulte a equipe para combinar o resgate.</p>
+            <div class="passos">
+              <div><b>1</b><span>Escolha seus doces preferidos.</span></div>
+              <div><b>2</b><span>Acumule R$ 350 em compras confirmadas e entregues.</span></div>
+              <div><b>3</b><span>A doceria recebe o aviso da cortesia.</span></div>
+            </div>
+          </div>
+          <div class="promocao-arte" aria-hidden="true">🎂<span>♡</span></div>
+        </div>
+        <div class="promocao-rodape">
+          <div><small>CORTESIA POR FIDELIDADE</small><strong>Bolo de fubá</strong></div>
+          <a class="botao botao-rosa" href="#contato" data-whatsapp>Consultar pelo WhatsApp</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao conteiner" id="depoimentos">
+      <div class="secao-titulo">
+        <div><h2>Depoimentos dos clientes</h2></div>
+        <p>A opinião de quem experimenta nossos doces é muito importante.</p>
+      </div>
+      <div class="depoimentos-grid">
+        <article class="depoimento-vazio">
+          <div class="estrelas" aria-hidden="true">★★★★★</div>
+          <h3>Em breve, avaliações reais por aqui.</h3>
+          <p>Estamos preparando este espaço para apresentar comentários autorizados dos nossos clientes.</p>
+          <a href="#contato">Fale com a doceria ↗</a>
+        </article>
+        <article class="depoimento-vazio">
+          <div class="estrelas" aria-hidden="true">♡</div>
+          <h3>Seu carinho faz a diferença!</h3>
+          <p>Já fez uma encomenda? Conte para a equipe o que achou. Seu comentário pode aparecer aqui, com sua autorização.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="secao conteiner" id="sobre">
+      <div class="secao-titulo">
+        <div><div class="sobretitulo">CARINHO EM CADA DETALHE</div><h2>Feito para celebrar</h2></div>
+        <p>Um doce torna qualquer ocasião mais especial — desde o café da tarde até uma grande comemoração.</p>
+      </div>
+      <div class="cartoes-sobre">
+        <article><div class="simbolo">🍰</div><h3>Doces que encantam</h3><p>Uma seleção de bolos e sobremesas para diferentes momentos.</p></article>
+        <article><div class="simbolo">💌</div><h3>Encomendas especiais</h3><p>Fale com a doceria para combinar os detalhes da sua encomenda.</p></article>
+        <article><div class="simbolo">🕒</div><h3>Retirada combinada</h3><p>Escolha a data e o horário desejados e confirme a disponibilidade.</p></article>
+      </div>
+    </section>
+
+    <section class="secao conteiner" id="instagram">
+      <div class="instagram-bloco">
+        <div class="sobretitulo">INSTAGRAM</div>
+        <h2>Acompanhe as delícias da semana</h2>
+        <p>Veja novidades, fotos dos produtos e inspirações para sua próxima encomenda.</p>
+        <div class="instagram-cartao">
+          <div class="instagram-icone">Instagram</div>
+          <strong id="instagram-handle">Nossa doceria</strong>
+          <a id="instagram-link" class="botao botao-rosa" href="#contato">Consultar Instagram</a>
+          <small id="instagram-info">O endereço da rede social será adicionado em breve.</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="secao conteiner" id="contato">
+      <div class="contato-bloco">
+        <div class="contato-texto">
+          <div class="sobretitulo claro">FALE COM A GENTE</div>
+          <h2>Pronta para adoçar a sua semana?</h2>
+          <p>Mande uma mensagem com seu pedido e a data desejada. Combinamos tudo com carinho!</p>
+          <a class="botao botao-claro" data-whatsapp href="#contato">Encomendar agora no WhatsApp <span aria-hidden="true">↗</span></a>
+          <div id="telefone-visivel" class="telefone"></div>
+        </div>
+        <div class="contato-card">
+          <img id="foto-local" src="https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&amp;fit=crop&amp;w=1100&amp;q=85" alt="Doces da confeitaria" loading="lazy">
+          <div class="contato-infos">
+            <h3 id="nome-contato">Nossa doceria</h3>
+            <p id="endereco-texto">Atendimento e retirada mediante agendamento.</p>
+            <p id="horario-texto">Consulte os horários pelo WhatsApp.</p>
+            <a id="mapa-link" href="#contato" hidden target="_blank" rel="noopener noreferrer">Ver no Google Maps ↗</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="painel-carrinho" class="cart-drawer" hidden>
+    <button class="cart-backdrop" type="button" data-fechar-carrinho aria-label="Fechar sacola"></button>
+    <aside class="cart-modal" role="dialog" aria-modal="true" aria-labelledby="titulo-carrinho">
+      <div class="cart-header">
+        <h2 id="titulo-carrinho">Sua sacola</h2>
+        <button type="button" class="cart-close" data-fechar-carrinho aria-label="Fechar sacola">×</button>
+      </div>
+      <p class="cart-note">Monte sua lista e envie pelo WhatsApp. O pedido e a reserva só serão confirmados no atendimento.</p>
+      <div id="linhas-carrinho" class="cart-items" aria-live="polite"></div>
+      <div class="cart-bottom">
+        <div class="cart-total">Total estimado <strong id="total-carrinho">R$ 0,00</strong></div>
+        <button type="button" id="enviar-carrinho" class="botao botao-rosa cart-send">Enviar lista no WhatsApp</button>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="rodape conteiner">
+    <span id="rodape-nome">Nossa doceria • Confeitaria artesanal</span>
+    <span>Feito com carinho ♡ · Catálogo com tecnologia Salamandras</span>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script defer src="loja.js?v=12G"></script>
+</body>
+</html>

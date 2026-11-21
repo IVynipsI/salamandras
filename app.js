@@ -1,4 +1,4 @@
-/* SALAMANDRAS 12 | ERP: gráfico de vendas por produto e botão de tema compacto. */
+/* SALAMANDRAS 12 - A GRANDE ATUALIZACAO | base 12C preservada */
 'use strict';
 
 /* SALAMANDRAS 11 — modo claro/escuro do ERP (sem alterar a loja pública).
@@ -61,7 +61,7 @@ const $ = (id) => document.getElementById(id);
 const esc = (x) => String(x ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const reais = (n) => Number(n || 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const dataBR = (s) => s ? new Date(s).toLocaleString('pt-BR') : '—';
-const nomeCargo = {dev:'DEV',adm:'ADM',logistica:'Logística',confeiteiro:'Confeiteiro',atendente:'Atendente',funcionario:'Funcionário'};
+const nomeCargo = {dev:'DEV',adm:'ADM',financeiro:'Financeiro',logistica:'Logística',confeiteiro:'Confeiteiro',atendente:'Atendente',funcionario:'Funcionário'};
 // SALAMANDRAS 12: barras empilhadas por produto, escala automatica,
 // detalhes ao passar o mouse ou tocar. Sem bibliotecas externas.
 const NOMES_MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -177,24 +177,83 @@ function ativarGraficos(raiz=document){
   });
 }
 
+
+// ATT 12B — motivos de cancelamento, exclusivos para ADM e DEV.
+function graficoCancelamentos(dados){
+  const categorias=Array.isArray(dados?.categorias)?dados.categorias:[];
+  const total=Number(dados?.total||0);
+  if(!total)return cartao('Principais motivos de cancelamento',
+    '<p class="muted">Nenhum pedido cancelado neste ano.</p>');
+  const cores=['#ce4653','#de6d56','#e69a58','#b55c80','#ba7549','#b86d9a','#a04c55','#9b6670'];
+  const itens=categorias.map((c,i)=>{
+    const n=Number(c.quantidade||0);
+    const pct=total?100*n/total:0;
+    const titulo=`${c.categoria} · ${n} pedido(s) · ${pct.toFixed(1)}%`;
+    return `<div class="motivo12-linha" title="${esc(titulo)}">
+      <div class="motivo12-nome">${esc(c.categoria)}</div>
+      <div class="motivo12-trilho"><div class="motivo12-barra" style="width:${Math.max(0,Math.min(100,pct)).toFixed(1)}%;background:${cores[i%cores.length]}"></div></div>
+      <strong class="motivo12-valor">${n} · ${pct.toFixed(1)}%</strong>
+    </div>`;
+  }).join('');
+  return cartao(`Principais motivos de cancelamento (${total})`,
+    `<p class="muted">Percentual de pedidos cancelados por motivo. Passe o mouse sobre as barras para consultar.</p>
+    <div class="motivo12-grafico" role="img" aria-label="Grafico de motivos de cancelamento">${itens}</div>`);
+}
+function tabelaCancelamentos(dados){
+  const pedidos=Array.isArray(dados?.pedidos)?dados.pedidos:[];
+  return cartao('Justificativas dos pedidos cancelados',tabela(
+    ['Pedido','Data','Cliente','Categoria','Justificativa','Cancelado por'],
+    pedidos.map(p=>`<tr><td><strong>#${esc(p.numero)}</strong></td>
+      <td>${dataBR(p.created_at)}</td><td>${esc(p.cliente)}</td><td>${esc(p.categoria)}</td>
+      <td>${esc(p.motivo)}</td><td>${esc(p.responsavel)}</td></tr>`).join('')
+  ));
+}
+function tabelaHistoricoOperacoes(dados){
+  const itens=Array.isArray(dados)?dados:[];
+  return cartao('Historico de movimentacoes e responsaveis',
+    `<p class="muted">Somente ADM e DEV veem nomes. Registros antigos sem autor sao identificados como nao registrados.</p>`+
+    tabela(['Quando','Responsavel','Area','Acao','Registro'],
+      itens.map(m=>`<tr><td>${dataBR(m.created_at)}</td>
+        <td>${esc(m.autor_nome)}</td><td>${esc(m.entidade)}</td>
+        <td>${esc(String(m.acao||'').replace(/^status_/,''))}</td>
+        <td>${esc(m.descricao)}</td></tr>`).join('')));
+}
+
 const paginas = [
   ['painel','Painel'],['usuarios','Usuários'],['permissoes','Permissões'],
-  ['docerias','Docerias'],['redes','Redes da loja'],
-  ['estoque','Estoque · Ingredientes'],['produtos','Produtos · Cadastro'],
-  ['pedidos','Pedidos'],['clientes','Clientes'],['producao','Produção'],
-  ['vitrine','Vitrine'],['agenda','Agenda de entregas'],['relatorios','Relatórios']
+  ['empresas','Empresas'],['redes','Redes da loja'],
+  ['estoque','Estoque'],['produtos','Produtos'],
+  ['pedidos','Pedidos'],['cancelados','Pedidos cancelados'],['clientes','Clientes'],
+  ['producao','Produção'],['produtos-prontos','Produtos prontos'],
+  ['agenda','Agenda de entregas'],['financeiro','Financeiro'],
+  ['relatorios','Relatórios'],['loja-modelos','Loja virtual'],
+  ['estoque-ingredientes','Ingredientes'],['estoque-locais','Localizações'],
+  ['estoque-compras','Compras'],['estoque-movimentacoes','Movimentações'],
+  ['estoque-custos','Custos'],['estoque-alertas','Alertas'],
+  ['docerias','Empresas'],['vitrine','Produtos prontos']
 ];
-const modulosEquipe = paginas.filter(p=>!['usuarios','permissoes','docerias','redes','relatorios'].includes(p[0]));
+const modulosOcultos = new Set(['docerias','vitrine','estoque-ingredientes','estoque-locais',
+  'estoque-compras','estoque-movimentacoes','estoque-custos','estoque-alertas']);
+const modulosEquipe = [['painel','Painel'],['estoque','Estoque'],['produtos','Produtos'],
+  ['pedidos','Pedidos'],['clientes','Clientes'],['producao','Produção'],
+  ['vitrine','Produtos prontos'],['agenda','Agenda de entregas']];
 let permissoesAtivas = {};
 function podePagina(modulo){
-  if(modulo==='docerias')return perfil?.cargo==='dev';
-  if(['usuarios','permissoes','redes','relatorios'].includes(modulo))
+  if(modulo==='empresas'||modulo==='docerias') return perfil?.cargo==='dev';
+  if(modulo==='financeiro'||(modulo==='painel'&&perfil?.cargo==='financeiro')) return ['dev','adm','financeiro'].includes(perfil?.cargo);
+  if(modulo==='estoque-custos') return ['dev','adm','financeiro'].includes(perfil?.cargo);
+  if(modulo==='loja-modelos') return ['dev','adm'].includes(perfil?.cargo);
+  if(['usuarios','permissoes','redes','cancelados'].includes(modulo))
     return ['dev','adm'].includes(perfil?.cargo);
+  if(modulo==='relatorios') return ['dev','adm'].includes(perfil?.cargo);
+  if(modulo.startsWith('estoque-')) modulo='estoque';
+  if(modulo==='produtos-prontos') modulo='vitrine';
+  if(modulo==='docerias') modulo='empresas';
   return Boolean(permissoesAtivas[modulo]);
 }
 async function atualizarPermissoes(){
   permissoesAtivas=tenant?await rpc('api_minhas_permissoes',{p_doceria:tenant}):{};
-  $('menu').innerHTML=paginas.filter(x=>podePagina(x[0])).map(x=>
+  $('menu').innerHTML=paginas.filter(x=>!modulosOcultos.has(x[0]) && podePagina(x[0])).map(x=>
     `<a ${x[0]===pagina?'class="ativo"':''} href="${x[0]}.html">${esc(x[1])}</a>`).join('');
 }
 let usuario=null, perfil=null, docerias=[], tenant=null;
@@ -239,12 +298,12 @@ function selectOpcoes(itens,valorFn,textoFn,selecionado){
 }
 function badge(valor){return `<span class="tag ${esc(valor)}">${esc(valor)}</span>`;}
 function nomeProduto(id,lista){return lista.find(x=>x.id===id)?.nome || 'Produto não encontrado';}
-function nomeDoceria(id){return docerias.find(x=>x.id===id)?.nome || 'Sem doceria';}
+function nomeDoceria(id){return docerias.find(x=>x.id===id)?.nome || 'Sem empresa';}
 function minhaDoceria(){return docerias.find(d=>d.id===tenant);}
 function requerDoceria(){
   if(tenant) return false;
   container(cartao('Nenhuma doceria selecionada',
-    `<p>Se você é DEV, crie primeiro um estabelecimento em <a href="docerias.html">Docerias</a>. Se você é funcionário, peça para o administrador atribuir uma doceria à sua conta.</p>`));
+    `<p>Se você é DEV, crie primeiro um estabelecimento em <a href="empresas.html">Empresas</a>. Se você é funcionário, peça para o administrador atribuir uma empresa à sua conta.</p>`));
   return true;
 }
 async function lerPerfil(){
@@ -363,7 +422,7 @@ async function rotaAposLogin(){
   $('pendente-titulo').textContent=p.status==='pendente'?'Aguardando aprovação'
     : p.status==='rejeitado'?'Acesso não aprovado':p.status==='bloqueado'?'Acesso suspenso':`Acesso: ${p.status}`;
   $('pendente-texto').textContent=p.status==='pendente'
-    ? 'Seu cadastro existe, mas ainda precisa ser aprovado. Informe o código de convite da doceria ou aguarde o administrador.'
+    ? 'Seu cadastro existe, mas ainda precisa ser aprovado. Informe o código de convite da empresa ou aguarde o administrador.'
     : p.status==='rejeitado'
       ? 'Sua aprovação foi cancelada ou o cadastro foi rejeitado. Você pode solicitar novamente com este mesmo e-mail e senha.'
       : 'Seu acesso está bloqueado. Consulte um administrador.';
@@ -376,6 +435,14 @@ async function iniciarApp(){
   try{
     const p=await lerPerfil();
     if(!p || p.status!=='aprovado'){window.location.replace('index.html');return;}
+    if(p.cargo!=='dev'){
+      const statusEmpresa=await rpc('api_12_minha_empresa');
+      if(statusEmpresa?.situacao!=='ativa'){
+        container(cartao('Acesso da empresa indisponível',
+          '<p>O acesso desta empresa está temporariamente suspenso ou encerrado. Entre em contato com o responsável pelo contrato.</p><p>Seus dados não foram excluídos.</p>'));
+        on('sair','click',sair);return;
+      }
+    }
     const especificacao=paginas.find(x=>x[0]===pagina);
     if(!especificacao){container(cartao('Página desconhecida','Página não encontrada.'));return;}
     $('usuario-atual').textContent=`${p.nome_completo||usuario.email} · ${nomeCargo[p.cargo]||p.cargo}`;
@@ -384,7 +451,7 @@ async function iniciarApp(){
     if(p.cargo==='dev'){
       const escolhido=sessionStorage.getItem('salamandras_tenant');
       tenant=docerias.some(d=>d.id===escolhido)?escolhido:(docerias[0]?.id||null);
-      $('seletor-tenant').innerHTML=`<select id="trocar-doceria" aria-label="Doceria ativa"><option value="">Selecionar doceria</option>${selectOpcoes(docerias,d=>d.id,d=>d.nome,tenant)}</select>`;
+      $('seletor-tenant').innerHTML=`<select id="trocar-doceria" aria-label="Empresa ativa"><option value="">Selecionar empresa</option>${selectOpcoes(docerias,d=>d.id,d=>d.nome,tenant)}</select>`;
       on('trocar-doceria','change',ev=>{
         tenant=ev.target.value||null;
         sessionStorage.setItem('salamandras_tenant',tenant||'');
@@ -396,25 +463,34 @@ async function iniciarApp(){
     }
     await atualizarPermissoes();
     await carregarPagina();
-  }catch(err){container(cartao('Erro de inicialização',`<p>${esc(err.message)}</p><p>Confira se executou <code>sql/01_atualizacao.sql</code> e atualize a página.</p>`));console.error(err);}
+  }catch(err){container(cartao('Erro de inicialização',`<p>${esc(err.message)}</p><p>Confira se executou <code>SQL_12_GRANDE_ATUALIZACAO.sql</code> e atualize a página.</p>`));console.error(err);}
 }
+function contexto12(){return {rpc,db,tenant,perfil,container,cartao,esc,reais,aviso,falha,
+ dataBR,selecionar,selectOpcoes,carregarDocerias,docerias,pode};}
 async function carregarPagina(){
   container('<p>Carregando informações...</p>');
-  if(!podePagina(pagina)){container(cartao('Acesso negado','Seu cargo ou sua conta não possui permissão para esta aba.'));return;}
+  if(!podePagina(pagina)){
+    container(cartao('Acesso negado','Seu cargo ou sua conta não possui permissão para esta aba.'));return;
+  }
+  if(pagina==='empresas'||pagina==='docerias')return window.Salamandras12.empresas(contexto12());
   if(pagina==='permissoes')return carregarPermissoes();
-  if(pagina==='painel') return carregarPainel();
-  if(pagina==='usuarios') return carregarUsuarios();
-  if(pagina==='docerias') return carregarDocerias();
-  if(pagina==='redes') return carregarRedes();
-  if(requerDoceria()) return;
-  if(pagina==='estoque') return carregarEstoque();
-  if(pagina==='produtos') return carregarProdutos();
-  if(pagina==='pedidos') return carregarPedidos();
-  if(pagina==='clientes') return carregarClientes();
-  if(pagina==='producao') return carregarProducao();
-  if(pagina==='vitrine') return carregarVitrine();
-  if(pagina==='agenda') return carregarAgenda();
-  if(pagina==='relatorios') return carregarRelatorios();
+  if(pagina==='usuarios')return carregarUsuarios();
+  if(pagina==='redes')return carregarRedes();
+  if(requerDoceria())return;
+  if(pagina==='painel')return window.Salamandras12.painel(contexto12());
+  if(pagina==='estoque')return window.Salamandras12.estoque(contexto12());
+  if(pagina==='estoque-ingredientes')return carregarEstoque();
+  if(pagina.startsWith('estoque-'))return window.Salamandras12.estoqueInterno(pagina,contexto12());
+  if(pagina==='financeiro')return window.Salamandras12.financeiro(contexto12());
+  if(pagina==='loja-modelos')return window.Salamandras12.loja(contexto12());
+  if(pagina==='produtos')return carregarProdutos();
+  if(pagina==='pedidos')return carregarPedidos();
+  if(pagina==='cancelados')return carregarCancelados();
+  if(pagina==='clientes')return carregarClientes();
+  if(pagina==='producao')return carregarProducao();
+  if(pagina==='produtos-prontos'||pagina==='vitrine')return carregarVitrine();
+  if(pagina==='agenda')return carregarAgenda();
+  if(pagina==='relatorios')return carregarRelatorios();
 }
 
 async function carregarPainel(){
@@ -437,17 +513,21 @@ async function carregarPainel(){
   let resumoVendas='';
   let notificacoes='';
   let alertasEstoque='';
+  let historicoResponsaveis='';
+  let cancelamentosPainel='';
 
   if(pode('adm')){
     // O faturamento considera só pedidos ENTREGUES. Não representa Pix confirmado.
     const anoAtual=new Date().getFullYear();
-    const [resumo, avisos, clientes, vendasAno, vendasProdutos, alertas]=await Promise.all([
+    const [resumo, avisos, clientes, vendasAno, vendasProdutos, alertas, logOperacoes, cancelamentosAno]=await Promise.all([
       rpc('api_resumo_vendas',{p_doceria:tenant}),
       selecionar('notificacoes_cortesia'),
       selecionar('clientes','id,nome'),
       rpc('api_relatorio_vendas',{p_doceria:tenant,p_ano:anoAtual}),
       rpc('api_vendas_produtos_mensais',{p_doceria:tenant,p_ano:anoAtual}),
-      rpc('api_alertas_estoque',{p_doceria:tenant})
+      rpc('api_alertas_estoque',{p_doceria:tenant}),
+      rpc('api_historico_operacoes',{p_doceria:tenant,p_limite:20}),
+      rpc('api_relatorio_cancelamentos',{p_doceria:tenant,p_ano:anoAtual})
     ]);
     if(Array.isArray(alertas)&&alertas.length){
       alertasEstoque=cartao(`⚠️ Ingredientes com estoque baixo (${alertas.length})`,
@@ -470,6 +550,8 @@ async function carregarPainel(){
         <div class="resumo">${Number(resumo.clientes_cadastrados||0)}</div></a>
     </div>`;
 
+    historicoResponsaveis=tabelaHistoricoOperacoes(logOperacoes);
+    cancelamentosPainel=graficoCancelamentos(cancelamentosAno);
     const pendentes=avisos.filter(a=>!a.lida_em)
       .sort((a,b)=>b.created_at.localeCompare(a.created_at));
     const nomes=new Map(clientes.map(c=>[c.id,c.nome]));
@@ -487,7 +569,7 @@ async function carregarPainel(){
   }
 
   container(`<div class="card"><h2>${esc(nomeDoceria(tenant))}</h2><p>Sua conta está aprovada como <strong>${esc(nomeCargo[perfil.cargo])}</strong>. As operações são autorizadas novamente no banco de dados.</p></div>
-    ${resumoVendas}${alertasEstoque}${notificacoes}<div class="grid">${cardTexto}</div>`);
+    ${resumoVendas}${alertasEstoque}${notificacoes}${cancelamentosPainel}<div class="grid">${cardTexto}</div>${historicoResponsaveis}`);
   ativarGraficos($('conteudo'));
   document.querySelectorAll('[data-cortesia-lida]').forEach(btn=>btn.addEventListener('click',async()=>{
     try{
@@ -573,7 +655,7 @@ async function carregarRedes(){
     </form>
     ${linkPublico
       ? `<p><a href="${esc(linkPublico)}" target="_blank" rel="noopener noreferrer">Abrir site público desta doceria ↗</a></p>`
-      : `<p class="muted">A página ainda não foi publicada. Peça ao DEV para configurar o endereço da loja no módulo Docerias.</p>`}
+      : `<p class="muted">A página ainda não foi publicada. Peça ao DEV para configurar o endereço da loja no módulo Empresas.</p>`}
   `) + cartao('Imagem de capa do site público',`
     <p class="muted">ADM e DEV podem trocar a fotografia principal da loja. Aparece automaticamente no site após atualizar a página.</p>
     <div style="margin:12px 0">
@@ -629,20 +711,20 @@ async function carregarRedes(){
 }
 
 async function carregarDocerias(){
-  const criar=perfil.cargo==='dev'?cartao('Criar doceria',`
+  const criar=perfil.cargo==='dev'?cartao('Cadastrar empresa',`
     <form id="nova-doceria" class="formgrid">
       <div><label>Nome</label><input name="nome" required minlength="2"></div>
-      <button type="submit">Criar doceria</button>
+      <button type="submit">Cadastrar empresa</button>
     </form>`):'';
   const linhas=docerias.map(d=>`<tr><td>${esc(d.nome)}</td><td>${d.codigo_convite?`<code>${esc(d.codigo_convite)}</code>`:'—'}</td></tr>`).join('');
   let configuracao=''; let d=null;
   if(tenant&&pode('adm')){
     d=await rpc('api_config_doceria',{p_doceria:tenant});
-    if(d)configuracao=cartao('Editar a doceria e suas fotos',`
-      <p class="muted">A foto de capa e a foto do local aparecerão no site público da doceria.</p>
+    if(d)configuracao=cartao('Editar empresa e imagens',`
+      <p class="muted">A foto de capa e a foto do local aparecerão na loja virtual da empresa.</p>
       <form id="form-doceria">
         <div class="formgrid">
-          ${campoForm('nome','Nome da doceria','text',d.nome,'required minlength="2"')}
+          ${campoForm('nome','Nome da empresa','text',d.nome,'required minlength="2"')}
           ${campoForm('slug','Endereço público (slug)','text',d.slug||'','placeholder="doceria-teste"')}
           ${campoForm('whatsapp','WhatsApp com DDI (ex.: 5511999999999)','tel',d.whatsapp_site||'')}
           ${campoForm('instagram','Instagram (URL https://...)','url',d.instagram_site||'')}
@@ -653,20 +735,20 @@ async function carregarDocerias(){
             <option value="false" ${!d.site_publicado?'selected':''}>Oculto</option>
           </select></div>
         </div>
-        <p><label>Descrição da doceria</label><textarea name="descricao" rows="3">${esc(d.descricao_site||'')}</textarea></p>
+        <p><label>Descrição da empresa</label><textarea name="descricao" rows="3">${esc(d.descricao_site||'')}</textarea></p>
         <div class="formgrid">
           <div><label>Foto de capa (até 5 MB)</label>${htmlFoto(d.imagem_capa_url)}<input type="file" name="capa" accept="image/jpeg,image/png,image/webp"><label><input type="checkbox" name="remover_capa" class="check-inline"> Remover foto</label></div>
           <div><label>Foto do estabelecimento</label>${htmlFoto(d.imagem_local_url)}<input type="file" name="local" accept="image/jpeg,image/png,image/webp"><label><input type="checkbox" name="remover_local" class="check-inline"> Remover foto</label></div>
         </div>
-        <p><button type="submit">Salvar dados da doceria</button></p>
+        <p><button type="submit">Salvar dados da empresa</button></p>
       </form>
       ${d.slug?`<p><a href="loja.html?loja=${esc(d.slug)}" target="_blank" rel="noopener">Visualizar site público</a></p>`:''}
     `);
   }
-  container(criar+configuracao+cartao('Docerias e códigos de convite',tabela(['Doceria','Código'],linhas)));
+  container(criar+configuracao+cartao('Empresas e códigos de convite',tabela(['Empresa','Código'],linhas)));
   form('nova-doceria',async el=>{
     await rpc('api_criar_doceria',{p_nome:el.elements.nome.value});
-    docerias=await rpc('api_docerias');aviso('Doceria criada. Atualize a página para selecioná-la.');
+    docerias=await rpc('api_docerias');aviso('Empresa criada. Atualize a página para selecioná-la.');
     await carregarDocerias();
   });
   form('form-doceria',async el=>{
@@ -705,8 +787,8 @@ async function carregarUsuarios(){
   const usuarios=Array.isArray(registros)?registros:[];
   const listaBloqueados=Array.isArray(bloqueados)?bloqueados:[];
   const cargos=perfil.cargo==='dev'
-    ? ['adm','logistica','confeiteiro','atendente']
-    : ['logistica','confeiteiro','atendente'];
+    ? ['adm','financeiro','logistica','confeiteiro','atendente']
+    : ['financeiro','logistica','confeiteiro','atendente'];
   const ordenados=[...usuarios].sort((a,b)=>
     Number(b.status==='pendente')-Number(a.status==='pendente') ||
     String(a.nome_completo||a.email||'').localeCompare(String(b.nome_completo||b.email||''),'pt-BR')
@@ -715,8 +797,8 @@ async function carregarUsuarios(){
     const restrito=u.id===usuario.id || u.cargo==='dev' ||
       (perfil.cargo==='adm' && u.cargo==='adm');
     const doceria=perfil.cargo==='dev'
-      ? `<select data-doceria="${esc(u.id)}"><option value="">Selecionar doceria</option>${selectOpcoes(docerias,d=>d.id,d=>d.nome,u.doceria_id)}</select>`
-      : esc(u.doceria_nome||'Sem doceria');
+      ? `<select data-doceria="${esc(u.id)}"><option value="">Selecionar empresa</option>${selectOpcoes(docerias,d=>d.id,d=>d.nome,u.doceria_id)}</select>`
+      : esc(u.doceria_nome||'Sem empresa');
     let comandos='—';
     if(!restrito){
       const banimento=`<button type="button" class="small acao-bloqueio-permanente" data-permanente="${esc(u.id)}"
@@ -747,7 +829,7 @@ async function carregarUsuarios(){
 
   const linhasBloqueados=listaBloqueados.map(b=>`<tr>
     <td><strong>${esc(b.nome_completo||'Sem nome')}</strong><br><small>${esc(b.email)}</small></td>
-    <td>${esc(b.doceria_nome||'Sem doceria')}</td>
+    <td>${esc(b.doceria_nome||'Sem empresa')}</td>
     <td>${dataBR(b.created_at)}</td>
     <td><button type="button" class="small acao-desbloquear" data-desbloquear-permanente="${esc(b.id)}">
       Desbloquear e permitir nova solicitação</button></td>
@@ -851,7 +933,7 @@ async function carregarPermissoes(){
       <select id="usuario-permissoes"><option value="">Selecione um funcionário</option>
         ${selectOpcoes(lista,u=>u.id,u=>`${u.nome_completo||u.email} · ${nomeCargo[u.cargo]}`)}</select>
       <div id="permissoes-individuais"></div>`)+
-    cartao('Áreas protegidas',`<p>Docerias: somente DEV. Usuários, Redes da loja e Relatórios financeiros: somente ADM/DEV. Essas áreas não podem ser liberadas a funcionários.</p>`));
+    cartao('Áreas protegidas',`<p>Empresas: somente DEV. Usuários, Redes da loja e Relatórios financeiros: somente ADM/DEV. Essas áreas não podem ser liberadas a funcionários.</p>`));
   const desenhar=()=>{
     const uid=$('usuario-permissoes').value;
     if(!uid){$('permissoes-individuais').innerHTML='<p class="muted">Escolha um funcionário acima.</p>';return;}
@@ -928,7 +1010,7 @@ async function carregarCadastros(modo){
     <p class="muted">Para cada unidade do produto, informe quanto de cada ingrediente será utilizado.</p>
     <form id="novo-produto">
       <div class="formgrid">
-        <div><label>Nome do bolo/produto</label><input name="nome" required minlength="2"></div>
+        <div><label>Nome do produto</label><input name="nome" required minlength="2"></div>
         <div><label>Preço de venda (R$)</label>
           <input name="preco" type="number" min="0" step="0.01" required></div>
       </div>
@@ -1015,19 +1097,21 @@ async function carregarCadastros(modo){
       </form>`)
   ) : '';
 
-  const movimentacoes = permiteIngredientes ? await selecionar('movimentacoes') : [];
-  movimentacoes.sort((a,b) => b.created_at.localeCompare(a.created_at));
-  const movLinhas = movimentacoes.filter(m=>produtosPagina?m.item_tipo==='produto':m.item_tipo==='ingrediente').slice(0,30).map(m => `<tr>
+  const movimentacoes = permiteIngredientes ? await rpc('api_movimentacoes_resumo',{
+    p_doceria:tenant,p_tipo:produtosPagina?'produto':'ingrediente'
+  }) : [];
+  const movLinhas = (Array.isArray(movimentacoes)?movimentacoes:[]).map(m => `<tr>
     <td>${dataBR(m.created_at)}</td><td>${esc(m.item_tipo)}</td>
     <td>${m.variacao>0?'+':''}${m.variacao}</td>
-    <td>${m.saldo_anterior} → ${m.saldo_posterior}</td><td>${esc(m.motivo)}</td></tr>`).join('');
+    <td>${m.saldo_anterior} → ${m.saldo_posterior}</td><td>${esc(m.motivo)}</td>
+    ${pode('adm')?`<td>${esc(m.autor_nome||'Nao registrado')}</td>`:''}</tr>`).join('');
 
   const produtoTabela=cartao('Produtos prontos e fichas técnicas',tabela(
     ['Foto','Produto','Preço','Receita por unidade','Físico','Reservado','Disponível','Ação'],pLinhas));
   const estoqueTabela=cartao('Ingredientes em estoque',tabela(
     ['Ingrediente','Saldo','Alerta até','Situação','Ação'],iLinhas));
   // movLinhas ja e uma string HTML criada com .join(''); nao usar .filter() nela.
-  const historico=tabela(['Quando','Tipo','Variação','Antes → Depois','Motivo'],movLinhas);
+  const historico=tabela(['Quando','Tipo','Variação','Antes → Depois','Motivo',...(pode('adm')?['Responsável']:[])],movLinhas);
   const busca=cartao(produtosPagina?'Pesquisar produtos':'Pesquisar ingredientes',
     `<label>Pesquisar pelo nome</label><input id="buscar-cadastros" type="search"
      placeholder="Digite para filtrar os registros..." autocomplete="off">
@@ -1297,7 +1381,7 @@ async function carregarClientes(){
 
 async function carregarPedidos(){
   const podeCriar=pode('adm','atendente');
-  // Vitrine/confeiteiro podem consultar pedidos, mas não têm permissão
+  // Produtos prontos/confeiteiro podem consultar pedidos, mas não têm permissão
   // para acessar a lista de clientes. Não solicitar dados sem autorização.
   const [produtos,pedidos,itens,clientes]=await Promise.all([
     selecionar('produtos'),
@@ -1327,25 +1411,27 @@ async function carregarPedidos(){
     <p class="muted">Este pedido reserva produtos que já estão prontos. Encomendas sem estoque ficam para uma etapa posterior.</p>
     <button type="submit" ${clientes.some(c=>c.ativo!==false)?'':'disabled'}>Criar pedido e agendar</button>
     </form>`):'';
-  pedidos.sort((a,b)=>b.created_at.localeCompare(a.created_at));
-  const linhas=pedidos.map(p=>{
+  const pedidosAtivos=pedidos.filter(p=>p.status!=='cancelado');
+  pedidosAtivos.sort((a,b)=>b.created_at.localeCompare(a.created_at));
+  const linhas=pedidosAtivos.map(p=>{
     const descricao=itens.filter(i=>i.pedido_id===p.id).map(i=>`${i.quantidade}× ${nomeProduto(i.produto_id,produtos)}`).join(', ');
     const acoes=[];
     if(p.status==='novo' && pode('adm','atendente','confeiteiro','logistica')) acoes.push(['preparando','Preparando']);
     if(['novo','preparando'].includes(p.status) && pode('adm','atendente','confeiteiro','logistica')) acoes.push(['pronto','Pronto']);
     if(p.status==='pronto' && pode('adm','atendente','logistica')) acoes.push(['entregue','Entregar']);
-    if(['novo','preparando','pronto'].includes(p.status) && pode('adm','atendente')) acoes.push(['cancelado','Cancelar']);
+    const podeCancelar=['novo','preparando','pronto'].includes(p.status)&&pode('adm');
     const reagendar=['novo','preparando','pronto'].includes(p.status)&&pode('adm','atendente');
     const editarItens=['novo','preparando','pronto'].includes(p.status)&&pode('adm');
-    return `<tr><td><strong>#${esc(p.numero_pedido||p.id.slice(0,8))}</strong></td><td>${dataBR(p.created_at)}</td><td>${esc(p.cliente)}</td><td>${esc(descricao)}</td>
+    return `<tr><td><strong>#${esc(p.codigo_visivel||p.numero_pedido||p.id.slice(0,8))}</strong></td><td>${dataBR(p.created_at)}</td><td>${esc(p.cliente)}</td><td>${esc(descricao)}</td>
       <td>${esc(p.retirada_data||'Sem data')} ${esc(p.retirada_hora?.slice(0,5)||'')}</td>
       <td>${reais(p.total)}</td><td>${badge(p.status)}</td><td><div class="acoes">
-      ${acoes.map(([st,label])=>`<button class="small ${st==='cancelado'?'danger':''}" data-pedido="${p.id}" data-status="${st}">${label}</button>`).join('')}
+      ${acoes.map(([st,label])=>`<button class="small" data-pedido="${p.id}" data-status="${st}">${label}</button>`).join('')}
+      ${podeCancelar?`<button type="button" class="small danger" data-cancelar-pedido="${p.id}">Cancelar com motivo</button>`:''}
       ${reagendar?`<button type="button" class="small sec" data-reagendar="${p.id}">Reagendar</button>`:''}
       ${editarItens?`<button type="button" class="small sec" data-editar-itens="${p.id}">Editar itens</button>`:''}
       </div></td></tr>`;
   }).join('');
-  container(criar+`<div id="editor-itens-pedido"></div>`+cartao('Pedidos registrados',`<p><button class="sec" id="recarregar-pedidos">Atualizar</button></p>${tabela(['Registrado','Cliente','Itens','Agendado','Total','Status','Ações'],linhas)}`));
+  container(criar+`<div id="cancelamento-pedido"></div><div id="editor-itens-pedido"></div>`+cartao('Pedidos registrados',`<p><button class="sec" id="recarregar-pedidos">Atualizar</button></p>${tabela(['Registrado','Cliente','Itens','Agendado','Total','Status','Ações'],linhas)}`));
   carrinho=[];atualizarCarrinho(produtos);
   const dataInput=document.querySelector('#novo-pedido input[name="data"]');
   if(dataInput){
@@ -1382,6 +1468,46 @@ async function carregarPedidos(){
       aviso(await rpc('api_status_pedido',{p_pedido:b.dataset.pedido,p_status:b.dataset.status}));
       await carregarPedidos();
     }catch(err){falha(err);}
+  }));
+
+  // Somente ADM/DEV visualiza o formulario; a RPC impõe a mesma regra no servidor.
+  document.querySelectorAll('[data-cancelar-pedido]').forEach(b=>b.addEventListener('click',()=>{
+    if(!pode('adm'))return;
+    const ped=pedidos.find(p=>p.id===b.dataset.cancelarPedido);
+    if(!ped)return;
+    $('cancelamento-pedido').innerHTML=cartao(`Cancelar pedido #${esc(ped.codigo_visivel||ped.numero_pedido||ped.id.slice(0,8))}`,`
+      <p class="muted">O cancelamento libera a reserva, mas preserva o pedido e a justificativa no historico.</p>
+      <form id="form-cancelar-pedido">
+        <div class="formgrid">
+          <div><label>Motivo principal</label><select name="categoria" required>
+            <option value="">Selecione o motivo</option>
+            ${[
+              ['Desistencia do cliente','Desistencia do cliente'],
+              ['Falta de estoque','Falta de estoque'],
+              ['Problema na producao','Problema na producao'],
+              ['Prazo ou entrega','Prazo ou entrega'],
+              ['Pagamento nao realizado','Pagamento nao realizado'],
+              ['Pedido duplicado','Pedido duplicado'],
+              ['Outro','Outro motivo']
+            ].map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('')}
+          </select></div>
+        </div>
+        <p><label>Justificativa detalhada (obrigatoria)</label>
+        <textarea name="motivo" minlength="5" maxlength="280" rows="3" required
+          placeholder="Ex.: Cliente pediu o cancelamento porque mudou a data da festa"></textarea></p>
+        <p class="acoes"><button type="submit" class="danger">Confirmar cancelamento</button>
+          <button type="button" class="sec" id="fechar-cancelamento">Voltar</button></p>
+      </form>`);
+    $('cancelamento-pedido').scrollIntoView({behavior:'smooth',block:'start'});
+    on('fechar-cancelamento','click',()=>{$('cancelamento-pedido').innerHTML='';});
+    form('form-cancelar-pedido',async el=>{
+      if(!confirm(`Confirmar cancelamento do pedido #${ped.numero_pedido||ped.id.slice(0,8)}?`))return;
+      aviso(await rpc('api_cancelar_pedido',{
+        p_pedido:ped.id,p_categoria:el.elements.categoria.value,
+        p_motivo:el.elements.motivo.value.trim()
+      }));
+      await carregarPedidos();
+    });
   }));
 
   document.querySelectorAll('[data-editar-itens]').forEach(b=>b.addEventListener('click',()=>{
@@ -1535,7 +1661,7 @@ async function carregarVitrine(){
     const data=p.retirada_data
       ? `${p.retirada_data.split('-').reverse().join('/')} ${String(p.retirada_hora||'').slice(0,5)}`
       : 'Não agendado';
-    return `<tr><td><strong>#${esc(p.numero_pedido||p.id.slice(0,8))}</strong></td>
+    return `<tr><td><strong>#${esc(p.codigo_visivel||p.numero_pedido||p.id.slice(0,8))}</strong></td>
       <td>${esc(p.cliente)}</td><td>${esc(formatarItens(p))}</td>
       <td>${esc(data)}</td><td>${esc(p.tipo_entrega==='entrega'?'Entrega':'Retirada')}</td>
       <td>${esc(p.endereco_entrega||'—')}</td><td>${badge(p.status)}</td>
@@ -1577,7 +1703,7 @@ async function carregarAgenda(){
     const selecionados=agendas.filter(a=>(!filtroData||a.data===filtroData)&&(!filtroStatus||a.status===filtroStatus));
     $('tabela-agenda').innerHTML=tabela(
       ['Pedido','Data','Hora','Cliente','Produtos','Modalidade','Endereço / Observação','Status'],
-      selecionados.map(a=>`<tr><td><strong>#${esc(a.numero_pedido||a.id.slice(0,8))}</strong></td><td>${esc(a.data?String(a.data).split('-').reverse().join('/'):'—')}</td><td>${esc((a.hora||'').slice(0,5))}</td>
+      selecionados.map(a=>`<tr><td><strong>#${esc(a.codigo_visivel||a.numero_pedido||a.id.slice(0,8))}</strong></td><td>${esc(a.data?String(a.data).split('-').reverse().join('/'):'—')}</td><td>${esc((a.hora||'').slice(0,5))}</td>
         <td>${esc(a.cliente)}</td><td>${esc(a.itens)}</td><td>${esc(a.tipo)}</td>
         <td>${esc(a.endereco||'—')} ${a.observacao?`<small>${esc(a.observacao)}</small>`:''}</td>
         <td>${badge(a.status)}</td></tr>`).join(''));
@@ -1585,6 +1711,85 @@ async function carregarAgenda(){
   on('agenda-data','change',desenhar);on('agenda-status','change',desenhar);
   on('agenda-atualizar','click',()=>carregarAgenda().catch(falha));
   desenhar();
+}
+
+// ATT 12C — Cancelados fora da lista de pedidos, área exclusiva para ADM e DEV.
+async function carregarCancelados(){
+  if(!pode('adm')){
+    container(cartao('Acesso negado','Somente DEV ou ADM podem consultar cancelamentos.'));
+    return;
+  }
+  let paginaAtual=0;
+  let filtroAtual='';
+  const anoAtual=new Date().getFullYear();
+  container(cartao('Consultar pedidos cancelados',`
+    <p class="muted">Pedidos cancelados não aparecem na lista operacional. Aqui fica o histórico com justificativas e responsáveis.</p>
+    <div class="formgrid">
+      <div><label>Ano do cancelamento</label>
+        <select id="ano-cancelados">
+          <option value="">Todos os anos</option>
+          ${Array.from({length:Math.min(10,anoAtual-2020+1)},(_,i)=>anoAtual-i)
+              .map(ano=>`<option value="${ano}">${ano}</option>`).join('')}
+        </select></div>
+      <div><label>Pesquisar cliente ou nº do pedido</label><input id="busca-cancelados" placeholder="Ex.: Maria ou 125" maxlength="100"></div>
+      <div><label>&nbsp;</label><button type="button" id="buscar-cancelados">Pesquisar</button></div>
+    </div>
+    <div id="grafico-motivos-cancelados"></div>
+    <div id="historico-cancelados" aria-live="polite"></div>`));
+  const carregar=async()=>{
+    const anoTxt=$('ano-cancelados').value;
+    const ano=anoTxt?Number(anoTxt):null;
+    filtroAtual=$('busca-cancelados').value.trim();
+    if(ano!==null && (!Number.isInteger(ano)||ano<2020||ano>2100)){
+      throw new Error('Ano inválido.');
+    }
+    const dados=await rpc('api_pedidos_cancelados',{
+      p_doceria:tenant,p_ano:ano,p_busca:filtroAtual,p_limite:30,p_offset:paginaAtual*30
+    });
+    const lista=Array.isArray(dados?.pedidos)?dados.pedidos:[];
+    const total=Number(dados?.total||0);
+    const linhas=lista.map(p=>`<tr>
+      <td><strong>#${esc(p.numero)}</strong></td>
+      <td>${dataBR(p.cancelado_em)}</td>
+      <td>${esc(p.cliente)}</td>
+      <td>${esc(p.itens||'—')}</td>
+      <td>${reais(p.valor)}</td>
+      <td>${esc(p.categoria)}</td>
+      <td>${esc(p.motivo)}</td>
+      <td>${esc(p.responsavel)}</td>
+    </tr>`).join('');
+    const paginas=Math.max(1,Math.ceil(total/30));
+    $('historico-cancelados').innerHTML=cartao(`Histórico de pedidos cancelados (${total})`,
+      `${tabela(['Pedido','Cancelado em','Cliente','Produtos','Valor','Categoria','Justificativa','Cancelado por'],linhas)}
+      <div class="acoes" style="margin-top:14px;align-items:center">
+        <button id="pagina-cancelados-anterior" type="button" class="sec small" ${paginaAtual===0?'disabled':''}>Anterior</button>
+        <span>Página ${paginaAtual+1} de ${paginas}</span>
+        <button id="pagina-cancelados-proxima" type="button" class="sec small" ${(paginaAtual+1)*30>=total?'disabled':''}>Próxima</button>
+      </div>`);
+    on('pagina-cancelados-anterior','click',()=>{
+      if(paginaAtual>0){paginaAtual--;carregar().catch(falha);}
+    });
+    on('pagina-cancelados-proxima','click',()=>{
+      if((paginaAtual+1)*30<total){paginaAtual++;carregar().catch(falha);}
+    });
+  };
+  const carregarGrafico=async()=>{
+    // O resumo de motivos considera o ano escolhido, sem filtrar por nome do cliente.
+    const ano=$('ano-cancelados').value;
+    const dados=await rpc('api_motivos_cancelamentos',{
+      p_doceria:tenant,p_ano:ano?Number(ano):null
+    });
+    $('grafico-motivos-cancelados').innerHTML=graficoCancelamentos(dados);
+  };
+  on('buscar-cancelados','click',()=>{paginaAtual=0;carregar().catch(falha);});
+  on('busca-cancelados','keydown',ev=>{
+    if(ev.key==='Enter'){ev.preventDefault();paginaAtual=0;carregar().catch(falha);}
+  });
+  on('ano-cancelados','change',()=>{
+    paginaAtual=0;
+    Promise.all([carregar(),carregarGrafico()]).catch(falha);
+  });
+  await Promise.all([carregar(),carregarGrafico()]);
 }
 
 // Informações financeiras disponíveis apenas para ADM e DEV.
@@ -1605,9 +1810,10 @@ async function carregarRelatorios(){
   const carregar=async()=>{
     const ano=Number($('ano-relatorio').value);
     if(!Number.isInteger(ano)||ano<2020||ano>2100){aviso('Informe um ano entre 2020 e 2100.',true);return;}
-    const [dados,produtosDoAno]=await Promise.all([
+    const [dados,produtosDoAno,cancelamentosAno]=await Promise.all([
       rpc('api_relatorio_vendas',{p_doceria:tenant,p_ano:ano}),
-      rpc('api_vendas_produtos_mensais',{p_doceria:tenant,p_ano:ano})
+      rpc('api_vendas_produtos_mensais',{p_doceria:tenant,p_ano:ano}),
+      rpc('api_relatorio_cancelamentos',{p_doceria:tenant,p_ano:ano})
     ]);
     const registros=Array.isArray(dados)?dados:[];
     const total=registros.reduce((s,v)=>s+Number(v.total||0),0);
@@ -1625,6 +1831,8 @@ async function carregarRelatorios(){
         <td>${NOMES_MESES[Number(d.mes)-1]||'—'}</td>
         <td>${reais(d.total)}</td><td>${Number(d.pedidos||0)}</td>
       </tr>`).join(''))}
+      ${graficoCancelamentos(cancelamentosAno)}
+      <p><a href="cancelados.html">Consultar todos os pedidos cancelados e suas justificativas</a></p>
     `;
     ativarGraficos($('resultado-relatorio'));
   };
