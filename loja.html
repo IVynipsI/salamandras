@@ -19,22 +19,28 @@
     <nav class="nav-links" aria-label="Menu principal">
       <a href="#cardapio">Cardápio</a>
       <a href="#promocao">Promoção</a>
-      <a href="#sobre">Nossa doceria</a>
+      <a href="#depoimentos">Depoimentos</a>
       <a href="#instagram">Instagram</a>
-      <a href="#contato">Contato</a>
+      <a href="#contato">Onde estamos</a>
     </nav>
-    <a href="#contato" class="botao botao-rosa botao-topo" data-whatsapp>Encomendar</a>
+    <div class="acoes-topo">
+      <button type="button" id="abrir-carrinho" class="botao botao-carrinho" aria-label="Abrir sacola de encomenda">Sacola <span id="carrinho-contagem">0</span></button>
+      <a id="topo-instagram" class="botao botao-instagram" href="#instagram" hidden
+         aria-label="Instagram da doceria" target="_blank" rel="noopener noreferrer">◎ Instagram</a>
+      <a class="botao botao-rosa botao-topo" href="#contato" data-whatsapp
+         aria-label="WhatsApp da doceria">WhatsApp ↗</a>
+    </div>
   </header>
 
   <main id="inicio">
     <section class="hero secao conteiner">
       <div class="hero-foto">
         <img id="foto-capa" src="https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&amp;fit=crop&amp;w=1400&amp;q=85" alt="Bolo artesanal decorado" fetchpriority="high">
-        <div class="etiqueta-girada">Feito com<br>carinho ♡</div>
+        <div class="etiqueta-girada">Ingredientes<br>selecionados<br>à mão</div>
       </div>
       <div class="hero-texto">
         <div class="sobretitulo">CONFEITARIA ARTESANAL</div>
-        <h1>Bolos e doces feitos para adoçar o dia<span class="ponto">.</span></h1>
+        <h1>Bolos e doces feitos para adoçar o dia</h1>
         <p id="descricao-hero">Um pedacinho de felicidade em cada encomenda. Escolha seu doce favorito e combine os detalhes pelo WhatsApp.</p>
         <div class="acoes-hero">
           <a class="botao botao-rosa" href="#contato" data-whatsapp>Encomendar no WhatsApp <span aria-hidden="true">↗</span></a>
@@ -47,10 +53,10 @@
     <section class="secao conteiner" id="cardapio">
       <div class="secao-titulo">
         <div>
-          <div class="sobretitulo">FEITO PARA VOCÊ</div>
+          
           <h2>Nosso cardápio</h2>
         </div>
-        <p>Confira nossos doces e encomende pelo WhatsApp. Os valores são atualizados diretamente pelo Salamandras.</p>
+        <p>Os favoritos da casa, prontos para encomendar pelo WhatsApp.</p>
       </div>
       <div id="aviso-catalogo" class="aviso-catalogo" role="status">Carregando cardápio...</div>
       <div id="grade-produtos" class="grade-produtos" aria-live="polite"></div>
@@ -76,6 +82,26 @@
           <div><small>CORTESIA POR FIDELIDADE</small><strong>Bolo de fubá</strong></div>
           <a class="botao botao-rosa" href="#contato" data-whatsapp>Consultar pelo WhatsApp</a>
         </div>
+      </div>
+    </section>
+
+    <section class="secao conteiner" id="depoimentos">
+      <div class="secao-titulo">
+        <div><h2>Depoimentos dos clientes</h2></div>
+        <p>A opinião de quem experimenta nossos doces é muito importante.</p>
+      </div>
+      <div class="depoimentos-grid">
+        <article class="depoimento-vazio">
+          <div class="estrelas" aria-hidden="true">★★★★★</div>
+          <h3>Em breve, avaliações reais por aqui.</h3>
+          <p>Estamos preparando este espaço para apresentar comentários autorizados dos nossos clientes.</p>
+          <a href="#contato">Fale com a doceria ↗</a>
+        </article>
+        <article class="depoimento-vazio">
+          <div class="estrelas" aria-hidden="true">♡</div>
+          <h3>Seu carinho faz a diferença!</h3>
+          <p>Já fez uma encomenda? Conte para a equipe o que achou. Seu comentário pode aparecer aqui, com sua autorização.</p>
+        </article>
       </div>
     </section>
 
@@ -126,6 +152,22 @@
       </div>
     </section>
   </main>
+
+  <div id="painel-carrinho" class="cart-drawer" hidden>
+    <button class="cart-backdrop" type="button" data-fechar-carrinho aria-label="Fechar sacola"></button>
+    <aside class="cart-modal" role="dialog" aria-modal="true" aria-labelledby="titulo-carrinho">
+      <div class="cart-header">
+        <h2 id="titulo-carrinho">Sua sacola</h2>
+        <button type="button" class="cart-close" data-fechar-carrinho aria-label="Fechar sacola">×</button>
+      </div>
+      <p class="cart-note">Monte sua lista e envie pelo WhatsApp. O pedido e a reserva só serão confirmados no atendimento.</p>
+      <div id="linhas-carrinho" class="cart-items" aria-live="polite"></div>
+      <div class="cart-bottom">
+        <div class="cart-total">Total estimado <strong id="total-carrinho">R$ 0,00</strong></div>
+        <button type="button" id="enviar-carrinho" class="botao botao-rosa cart-send">Enviar lista no WhatsApp</button>
+      </div>
+    </aside>
+  </div>
 
   <footer class="rodape conteiner">
     <span id="rodape-nome">Nossa doceria • Confeitaria artesanal</span>

@@ -4,3 +4,46 @@
 @media(max-width:760px){.cabecalho{height:auto;min-height:66px;padding:13px 19px;flex-wrap:wrap}.nav-links{order:3;width:100%;overflow-x:auto;white-space:nowrap;justify-content:flex-start;scrollbar-width:none;padding:3px 0 5px}.nav-links::-webkit-scrollbar{display:none}.botao-topo{margin-left:auto}.conteiner{width:calc(100% - 34px)}.secao{padding-block:38px}.hero{display:flex;flex-direction:column;gap:36px;padding-top:12px}.hero-foto{width:100%;min-height:0;aspect-ratio:1.04}.hero-foto img{border-radius:24px}.hero-texto{width:100%}.hero h1{max-width:530px;font-size:clamp(2.9rem,11.5vw,4.8rem);line-height:1.02}.hero-texto p{font-size:1rem}.hero-selo{margin-top:22px}.secao-titulo{display:block}.secao-titulo p{margin-top:10px}.grade-produtos{gap:12px}.produto{padding:10px;border-radius:18px}.produto-foto{height:clamp(140px,35vw,250px);border-radius:12px}.produto h3{font-size:1rem}.produto p{font-size:.76rem}.preco{font-size:1.22rem}.produto-link{font-size:.69rem}.promocao-topo{grid-template-columns:1fr}.promocao-arte{font-size:6rem}.promocao-rodape{align-items:flex-start;flex-direction:column}.cartoes-sobre{grid-template-columns:1fr}.contato-bloco{grid-template-columns:1fr}.contato-card img{height:250px}.rodape{flex-direction:column;gap:5px}}
 @media(max-width:380px){.marca{font-size:.94rem}.botao-topo{font-size:.78rem;padding:10px 13px}.grade-produtos{grid-template-columns:1fr}.produto-foto{height:250px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+
+/* Atualização 06 — informação pública de peso/tamanho */
+.produto-peso{display:inline-block;align-self:flex-start;margin:0 0 10px;padding:4px 11px;border-radius:999px;background:#fff8f2;color:#875d50;font-size:.75rem;font-weight:800;letter-spacing:.01em}
+
+/* Atualização 07 — top-right contacts + Lovable-inspired testimonials */
+.acoes-topo{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.botao-instagram{background:#fff8f2;color:#c03965;border:1px solid #ebcbd2}
+.botao-instagram:hover{background:#ffe5ed}
+.acoes-topo a[hidden]{display:none!important}
+.depoimentos-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.depoimento-vazio{background:var(--rosaclaro);border:1px solid #edd5d0;padding:27px;border-radius:24px;min-height:190px}
+.depoimento-vazio:nth-child(2){background:var(--verde)}
+.depoimento-vazio .estrelas{color:var(--rosa);font-weight:900;letter-spacing:.12em;margin-bottom:13px}
+.depoimento-vazio h3{max-width:25ch;margin-bottom:12px}
+.depoimento-vazio p{font-size:.9rem;max-width:45ch;margin:0}
+.depoimento-vazio a{color:#b7385d;font-size:.85rem;font-weight:800;display:inline-block;margin-top:15px}
+@media(max-width:760px){
+  .acoes-topo{margin-left:auto;gap:6px}
+  .acoes-topo .botao{font-size:.74rem;min-height:34px;padding:8px 11px}
+  .nav-links{order:3}
+  .depoimentos-grid{grid-template-columns:1fr}
+}
+@media(max-width:420px){
+  .marca{font-size:.9rem}
+  .marca-icone{width:29px;height:29px}
+  .acoes-topo .botao{font-size:.69rem;padding:7px 9px}
+}
+
+/* Sacola de encomenda: apenas uma lista para abrir no WhatsApp */
+.botao-carrinho{background:#fff7ec;border:1px solid #eedace;color:#61483e;cursor:pointer;white-space:nowrap}
+#carrinho-contagem{display:grid;place-items:center;width:21px;height:21px;border-radius:50%;background:var(--rosa);color:#fff;font-size:.73rem}
+.adicionar-sacola{border:1px solid #d2b5a4;background:transparent;color:#5b423b;cursor:pointer;border-radius:999px;padding:8px 11px;font-size:.77rem;font-weight:800;align-self:flex-start;margin-top:14px}
+.adicionar-sacola:hover{background:#fff9f2}
+.cart-drawer[hidden]{display:none!important}.cart-drawer{position:fixed;inset:0;z-index:50;display:flex;justify-content:flex-end}
+.cart-backdrop{position:absolute;inset:0;width:100%;height:100%;background:#251a17ac;border:0;cursor:pointer}
+.cart-modal{position:relative;width:min(460px,100%);height:100%;overflow-y:auto;background:var(--creme);padding:26px;box-shadow:-12px 0 30px #271b1b30;display:flex;flex-direction:column;gap:15px}
+.cart-header{display:flex;justify-content:space-between;gap:12px;align-items:center}.cart-header h2{margin:0;font-size:2.2rem}
+.cart-close{font-size:2rem;border:0;background:transparent;cursor:pointer;color:#5d514a}.cart-note{font-size:.87rem}
+.cart-items{flex:1}.cart-item{display:grid;grid-template-columns:1fr auto;gap:8px;border-bottom:1px solid var(--borda);padding:15px 0}.cart-item h3{font-size:1rem;margin:0 0 5px}.cart-item small{color:var(--muted)}
+.cart-stepper{display:flex;align-items:center;gap:8px}.cart-stepper button{border:1px solid #e7c4b8;border-radius:50%;background:#fff7ec;width:31px;height:31px;cursor:pointer}
+.cart-total{display:flex;align-items:center;justify-content:space-between;gap:14px;border-top:1px solid var(--borda);padding-top:13px}.cart-total strong{color:var(--rosa-escuro);font-size:1.4rem}
+.cart-send{cursor:pointer;width:100%;border:0}.cart-send:disabled{opacity:.5;cursor:not-allowed}
+@media(max-width:520px){.acoes-topo{gap:4px}.acoes-topo .botao{padding:7px 8px;font-size:.66rem}.botao-carrinho{gap:4px}#carrinho-contagem{width:17px;height:17px;font-size:.64rem}}

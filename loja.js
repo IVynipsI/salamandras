@@ -11,6 +11,9 @@ const IMG_COPO = 'https://images.unsplash.com/photo-1551024506-0bccd828d307?auto
 const IMG_BRIGADEIRO = 'https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&w=900&q=85';
 
 const $ = id => document.getElementById(id);
+let catalogoAtual = [];
+let carrinhoAtual = [];
+let whatsappAtual = '';
 const brl = valor => Number(valor || 0).toLocaleString('pt-BR', {style:'currency',currency:'BRL'});
 const escapeHTML = valor => String(valor ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -19,6 +22,16 @@ function urlSegura(valor) {
     const u = new URL(String(valor || ''));
     return ['https:','http:'].includes(u.protocol) ? u.href : '';
   } catch { return ''; }
+}
+// Resolve a foto enviada no Salamandras Storage (ou uma URL antiga segura).
+function resolverFoto(caminho) {
+  const valor=String(caminho||'');
+  if (/^[0-9a-f-]{36}\/(produtos|capa|local)\/[a-zA-Z0-9_-]{1,80}\.(jpg|jpeg|png|webp)$/.test(valor)) {
+    const base=String(window.SALAMANDRAS_CONFIG?.url||'').replace(/\/$/,'');
+    if(!base.startsWith('https://')) return '';
+    return base+'/storage/v1/object/public/salamandras-publico/'+valor.split('/').map(encodeURIComponent).join('/');
+  }
+  return urlSegura(valor);
 }
 function fotoExemplo(nome) {
   const s = String(nome).toLocaleLowerCase('pt-BR');
@@ -35,6 +48,7 @@ function whatsappUrl(telefone, mensagem=FRASE_BOT) {
   return 'https://wa.me/' + digitos + '?text=' + encodeURIComponent(mensagem);
 }
 function definirWhatsapp(telefone) {
+  whatsappAtual = telefone || '';
   const link = whatsappUrl(telefone);
   document.querySelectorAll('[data-whatsapp]').forEach(a => {
     a.href = link || '#contato';
@@ -59,6 +73,9 @@ function aviso(texto) {
 function esconderAviso() { $('aviso-catalogo').hidden = true; }
 
 function desenharProdutos(produtos, telefone) {
+  catalogoAtual = Array.isArray(produtos) ? produtos : [];
+  carrinhoAtual = [];
+  atualizarCarrinho();
   const grade = $('grade-produtos');
   grade.replaceChildren();
   if (!Array.isArray(produtos) || produtos.length === 0) {
@@ -67,7 +84,7 @@ function desenharProdutos(produtos, telefone) {
   }
   produtos.forEach(produto => {
     const nome = String(produto.nome || 'Produto');
-    const foto = urlSegura(produto.imagem) || fotoExemplo(nome);
+    const foto = resolverFoto(produto.imagem) || fotoExemplo(nome);
     const descricao = produto.descricao || 'Feito com carinho. Converse com a doceria para saber mais.';
     const link = whatsappUrl(telefone, FRASE_BOT + '\nTenho interesse em: ' + nome + '.');
     const card = document.createElement('article');
@@ -77,11 +94,13 @@ function desenharProdutos(produtos, telefone) {
       <div class="produto-corpo">
         <div class="produto-categoria">${escapeHTML(produto.categoria || 'Doce artesanal')}</div>
         <h3>${escapeHTML(nome)}</h3>
+        ${produto.peso_tamanho ? `<span class="produto-peso">${escapeHTML(produto.peso_tamanho)}</span>` : ''}
         <p>${escapeHTML(descricao)}</p>
         <div class="preco-linha">
           <span class="preco">${brl(produto.preco)}</span>
           ${link ? `<a class="produto-link" target="_blank" rel="noopener noreferrer" href="${escapeHTML(link)}">Pedir ↗</a>` : ''}
         </div>
+        <button type="button" class="adicionar-sacola" data-adicionar="${escapeHTML(produto.id || '')}">+ Adicionar à sacola</button>
       </div>`;
     const img = card.querySelector('img');
     img.addEventListener('error', () => {
@@ -97,6 +116,90 @@ function desenharProdutos(produtos, telefone) {
   });
 }
 
+
+function atualizarCarrinho() {
+  const contador = $('carrinho-contagem');
+  if (!contador) return;
+  const qtd = carrinhoAtual.reduce((s,item)=>s+item.quantidade,0);
+  contador.textContent = String(qtd);
+  const linhas = $('linhas-carrinho');
+  if (!linhas) return;
+  if (!carrinhoAtual.length) {
+    linhas.innerHTML = '<p class="muted">Sua sacola está vazia. Adicione um doce do cardápio.</p>';
+  } else {
+    linhas.innerHTML = carrinhoAtual.map(item => {
+      const produto = catalogoAtual.find(p=>String(p.id)===String(item.id));
+      if (!produto) return '';
+      return `<div class="cart-item">
+        <div><h3>${escapeHTML(produto.nome)}</h3>
+        <small>${brl(produto.preco)} por unidade</small></div>
+        <div class="cart-stepper">
+          <button type="button" data-mudar="-1" data-id="${escapeHTML(item.id)}" aria-label="Diminuir ${escapeHTML(produto.nome)}">−</button>
+          <strong>${item.quantidade}</strong>
+          <button type="button" data-mudar="1" data-id="${escapeHTML(item.id)}" aria-label="Aumentar ${escapeHTML(produto.nome)}">+</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  const soma = carrinhoAtual.reduce((total,item)=>{
+    const produto=catalogoAtual.find(p=>String(p.id)===String(item.id));
+    return total+(Number(produto?.preco)||0)*item.quantidade;
+  },0);
+  $('total-carrinho').textContent=brl(soma);
+  $('enviar-carrinho').disabled=!qtd || !whatsappUrl(whatsappAtual);
+}
+function abrirCarrinho() {
+  $('painel-carrinho').hidden=false;
+  document.body.style.overflow='hidden';
+  $('titulo-carrinho').focus?.();
+}
+function fecharCarrinho() {
+  $('painel-carrinho').hidden=true;
+  document.body.style.overflow='';
+}
+function iniciarCarrinho() {
+  $('abrir-carrinho').addEventListener('click',abrirCarrinho);
+  document.querySelectorAll('[data-fechar-carrinho]').forEach(b=>b.addEventListener('click',fecharCarrinho));
+  document.addEventListener('keydown',ev=>{
+    if(ev.key==='Escape') fecharCarrinho();
+  });
+  $('grade-produtos').addEventListener('click',ev=>{
+    const btn=ev.target.closest('[data-adicionar]');
+    if (!btn) return;
+    const p=catalogoAtual.find(x=>String(x.id)===btn.dataset.adicionar);
+    if (!p) return;
+    const item=carrinhoAtual.find(x=>String(x.id)===String(p.id));
+    if (item) item.quantidade+=1;
+    else carrinhoAtual.push({id:String(p.id),quantidade:1});
+    atualizarCarrinho();
+    abrirCarrinho();
+  });
+  $('linhas-carrinho').addEventListener('click',ev=>{
+    const btn=ev.target.closest('[data-mudar]');
+    if (!btn) return;
+    const item=carrinhoAtual.find(x=>x.id===btn.dataset.id);
+    if (!item) return;
+    item.quantidade+=Number(btn.dataset.mudar);
+    if(item.quantidade<=0)carrinhoAtual=carrinhoAtual.filter(x=>x!==item);
+    atualizarCarrinho();
+  });
+  $('enviar-carrinho').addEventListener('click',()=>{
+    if(!carrinhoAtual.length)return;
+    const linhas=carrinhoAtual.map(item=>{
+      const p=catalogoAtual.find(x=>String(x.id)===item.id);
+      return p?`${item.quantidade}x ${p.nome} (${brl(item.quantidade*Number(p.preco||0))})`:'';
+    }).filter(Boolean);
+    const total=carrinhoAtual.reduce((s,item)=>{
+      const p=catalogoAtual.find(x=>String(x.id)===item.id);
+      return s+(Number(p?.preco)||0)*item.quantidade;
+    },0);
+    const mensagem=FRASE_BOT+'\n\nQuero encomendar:\n'+linhas.join('\n')+
+      '\nTotal estimado: '+brl(total)+'\nPodemos combinar a data e o horário de retirada?';
+    const url=whatsappUrl(whatsappAtual,mensagem);
+    if(url)window.open(url,'_blank','noopener,noreferrer');
+  });
+}
+
 function configurarDoceria(doceria) {
   const nome = String(doceria.nome || 'Doceria');
   document.title = nome + ' | Bolos, doces e encomendas';
@@ -104,9 +207,9 @@ function configurarDoceria(doceria) {
   $('nome-contato').textContent = nome;
   $('rodape-nome').textContent = nome + ' • Confeitaria artesanal';
   if (doceria.descricao) $('descricao-hero').textContent = String(doceria.descricao);
-  const capa = urlSegura(doceria.imagem_capa);
+  const capa = resolverFoto(doceria.imagem_capa);
   if (capa) $('foto-capa').src = capa;
-  const local = urlSegura(doceria.imagem_local);
+  const local = resolverFoto(doceria.imagem_local);
   if (local) $('foto-local').src = local;
   if (doceria.endereco) {
     $('endereco-texto').textContent = String(doceria.endereco);
@@ -116,6 +219,8 @@ function configurarDoceria(doceria) {
   if (doceria.horario) $('horario-texto').textContent = String(doceria.horario);
   const instagram = urlSegura(doceria.instagram);
   if (instagram && /(^|\.)instagram\.com$/.test(new URL(instagram).hostname)) {
+    $('topo-instagram').href = instagram;
+    $('topo-instagram').hidden = false;
     $('instagram-link').href = instagram;
     $('instagram-link').target = '_blank';
     $('instagram-link').rel = 'noopener noreferrer';
@@ -123,6 +228,7 @@ function configurarDoceria(doceria) {
     $('instagram-handle').textContent = '@' + new URL(instagram).pathname.split('/').filter(Boolean)[0];
     $('instagram-info').textContent = 'Acompanhe as novidades da nossa confeitaria!';
   } else {
+    $('topo-instagram').hidden = true;
     $('instagram-link').hidden = true;
   }
   definirWhatsapp(doceria.whatsapp);
@@ -178,4 +284,4 @@ async function iniciar() {
   }
 }
 
-document.addEventListener('DOMContentLoaded',iniciar);
+document.addEventListener('DOMContentLoaded',()=>{iniciarCarrinho();iniciar();});
