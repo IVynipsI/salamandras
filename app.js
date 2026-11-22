@@ -258,6 +258,10 @@ async function atualizarPermissoes(){
   permissoesAtivas=tenant?await rpc('api_minhas_permissoes',{p_doceria:tenant}):{};
   $('menu').innerHTML=paginas.filter(x=>!modulosOcultos.has(x[0]) && podePagina(x[0])).map(x=>
     `<a ${x[0]===pagina?'class="ativo"':''} href="${x[0]}.html">${esc(x[1])}</a>`).join('');
+  if(window.matchMedia('(max-width: 800px)').matches){
+    const m=$('menu'),a=m.querySelector('a.ativo');
+    if(a)requestAnimationFrame(()=>m.scrollTo({left:Math.max(0,a.offsetLeft-(m.clientWidth-a.offsetWidth)/2),behavior:'instant'}));
+  }
 }
 let usuario=null, perfil=null, docerias=[], tenant=null;
 let carrinho=[];
@@ -647,6 +651,8 @@ async function carregarRedes(integrada=false){
   if(!rede) throw new Error('Doceria não encontrada.');
   let configVisual=null;
   try{configVisual=await rpc('api_config_site',{p_doceria:tenant});}catch(err){console.warn('Configuração visual:',err.message);}
+  let configEmpresa=null;
+  if(['dev','adm'].includes(perfil?.cargo))try{configEmpresa=await rpc('api_config_doceria',{p_doceria:tenant});}catch(e){console.warn(e)}
   const linkPublico = rede.site_publicado && rede.slug
     ? 'loja.html?loja='+encodeURIComponent(rede.slug)
     : '';
@@ -701,10 +707,32 @@ async function carregarRedes(integrada=false){
       <p><label><input type="checkbox" name="remover_capa" class="check-inline"> Remover capa personalizada e voltar à imagem padrão</label></p>
       <button type="submit">Salvar imagem da capa</button>
     </form>
-  `);
+  `) + (configEmpresa?cartao('Publicação e imagem de fundo',`
+  <p class="muted">Oculte ou publique o site sem excluir produtos ou imagens.</p>
+  <form id="form-publicacao-site" class="formgrid">
+    <div><label>Visibilidade do site</label><select name="publicado"><option value="true" ${configEmpresa.site_publicado?'selected':''}>Público</option><option value="false" ${!configEmpresa.site_publicado?'selected':''}>Privado / oculto</option></select></div>
+    <div><label>Imagem de fundo / estabelecimento</label>${configEmpresa.imagem_local_url?`<img src="${esc(fotoPublica(configEmpresa.imagem_local_url))}" alt="Imagem de fundo" style="max-width:390px;width:100%;border-radius:12px">`:'<p>Nenhuma imagem de fundo cadastrada.</p>'}
+      <input type="file" name="local" accept="image/jpeg,image/png,image/webp">
+      <label><input type="checkbox" name="remover_local" class="check-inline"> Remover imagem de fundo</label>
+    </div><button type="submit">Salvar publicação e imagem de fundo</button>
+  </form>`):'');
   if(integrada) $('conteudo').insertAdjacentHTML('beforeend',redesHtml);
   else container(redesHtml);
   const atualizarTela=integrada?carregarLojaVirtual:()=>carregarRedes(false);
+  form('form-publicacao-site',async el=>{
+    const before=configEmpresa.imagem_local_url||null,arquivo=el.elements.local.files?.[0],remover=el.elements.remover_local.checked;
+    if(arquivo&&remover)throw new Error('Escolha a imagem ou a opção remover.');
+    const novo=arquivo?await enviarFoto(arquivo,'local'):remover?null:before;
+    try{
+      await rpc('api_editar_doceria',{p_doceria:tenant,p_nome:configEmpresa.nome,p_slug:configEmpresa.slug||'',
+        p_publicado:el.elements.publicado.value==='true',p_whatsapp:configEmpresa.whatsapp_site||'',
+        p_instagram:configEmpresa.instagram_site||'',p_descricao:configEmpresa.descricao_site||'',
+        p_endereco:configEmpresa.endereco_site||'',p_horario:configEmpresa.horario_site||'',
+        p_capa:configEmpresa.imagem_capa_url||null,p_local:novo});
+      if(novo!==before)await limparFotoAntiga(novo,before);
+      aviso('Configurações da loja atualizadas.');await atualizarTela();
+    }catch(err){if(arquivo)await limparFotoAntiga(null,novo);throw err;}
+  });
   on('form-cor-site','change',()=>{ $('cor-site-previa').style.background=$('form-cor-site').elements.cor.value; });
   form('form-cor-site',async el=>{
     aviso(await rpc('api_atualizar_cor_site',{p_doceria:tenant,p_cor:el.elements.cor.value}));

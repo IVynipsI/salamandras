@@ -344,8 +344,8 @@ window.Salamandras12 = (() => {
       <section class="card"><div class="erp12-modelo">🛍</div><h2>Comércio geral</h2><p class="muted">Catálogo, pesquisa por categorias, grade de produtos e carrinho.</p>
       <button data-modelo="comercio">Selecionar modelo</button></section></div>
       <section class="card"><h2>Visualização da sua empresa</h2>
-      ${slug?`<p><a target="_blank" rel="noopener" href="loja.html?loja=${encodeURIComponent(slug)}">Abrir modelo de doceria ↗</a></p>
-      <p><a target="_blank" rel="noopener" href="loja-geral.html?loja=${encodeURIComponent(slug)}">Abrir comércio geral ↗</a></p>`:'<p class="muted">O endereço público será gerado automaticamente após o SQL 13E.</p>'}
+      ${slug?`<p><a target="_blank" rel="noopener" href="loja.html?loja=${encodeURIComponent(slug)}">Abrir modelo do seu site ↗</a></p>
+      <p><a target="_blank" rel="noopener" href="loja-geral.html?loja=${encodeURIComponent(slug)}">Abrir modelo de comércio geral ↗</a></p>`:'<p class="muted">O endereço público será gerado automaticamente após o SQL 13E.</p>'}
       <small class="muted">A escolha fica salva na empresa. A URL da loja pode ser divulgada depois de conferir o modelo e ativar a publicação.</small></section>`);
     document.querySelectorAll('[data-modelo]').forEach(b=>b.addEventListener('click',async()=>{
       if(!confirm('Definir este modelo de loja para a empresa?'))return;
