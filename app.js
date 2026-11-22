@@ -61,7 +61,7 @@ const $ = (id) => document.getElementById(id);
 const esc = (x) => String(x ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const reais = (n) => Number(n || 0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const dataBR = (s) => s ? new Date(s).toLocaleString('pt-BR') : '—';
-const nomeCargo = {dev:'DEV',adm:'ADM',financeiro:'Financeiro',logistica:'Logística',confeiteiro:'Confeiteiro',atendente:'Atendente',funcionario:'Funcionário'};
+const nomeCargo = {dev:'DEV',adm:'ADM',financeiro:'Financeiro',logistica:'Logística',confeiteiro:'Operador de produção',atendente:'Atendente',funcionario:'Funcionário'};
 // SALAMANDRAS 12: barras empilhadas por produto, escala automatica,
 // detalhes ao passar o mouse ou tocar. Sem bibliotecas externas.
 const NOMES_MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -229,7 +229,7 @@ const paginas = [
   ['rh','Gestão de Pessoas'],['registro-ponto','Registro de Ponto'],
   ['relatorios','Relatórios'],['loja-modelos','Loja virtual'],
   ['solicitacoes','Solicitações'],
-  ['estoque-ingredientes','Ingredientes'],['estoque-locais','Localizações'],
+  ['estoque-ingredientes','Matérias-primas'],['estoque-locais','Localizações'],
   ['estoque-compras','Compras'],['estoque-movimentacoes','Movimentações'],
   ['estoque-custos','Custos'],['estoque-alertas','Alertas'],
   ['docerias','Empresas'],['vitrine','Produtos prontos']
@@ -407,7 +407,7 @@ async function iniciarLogin(){
 
   form('form-convite',async()=>{
     const codigo=$('codigo-convite').value.trim();
-    if(!codigo)throw new Error('Digite o codigo recebido da doceria.');
+    if(!codigo)throw new Error('Digite o codigo recebido da empresa.');
     aviso(await rpc('api_solicitar_doceria',{p_codigo:codigo}));
     $('codigo-convite').value='';
   });
@@ -511,11 +511,11 @@ async function carregarPagina(){
   if(pagina==='rh')return window.Salamandras13.rh(contexto12());
   if(pagina==='registro-ponto')return window.Salamandras13.ponto(contexto12());
   if(pagina==='loja-modelos')return carregarLojaVirtual();
-  if(pagina==='produtos')return carregarProdutos();
+  if(pagina==='produtos'){await carregarProdutos();return window.Salamandras14.catalogo(contexto12());}
   if(pagina==='pedidos')return carregarPedidos();
   if(pagina==='cancelados'){window.location.replace('pedidos.html#cancelados');return;}
   if(pagina==='clientes')return carregarClientes();
-  if(pagina==='producao')return carregarProducao();
+  if(pagina==='producao')return window.Salamandras14.producao(contexto12());
   if(pagina==='produtos-prontos'||pagina==='vitrine')return carregarVitrine();
   if(pagina==='agenda')return carregarAgenda();
   if(pagina==='relatorios')return carregarRelatorios();
@@ -644,7 +644,7 @@ function campoForm(nome,rotulo,tipo='text',valor='',extra=''){
 }
 function seletorAtivo(nome,ativo){return `<select name="${nome}"><option value="true" ${ativo?'selected':''}>Ativo</option><option value="false" ${!ativo?'selected':''}>Arquivado/Inativo</option></select>`;}
 
-// Redes sociais da doceria: uma loja não pode editar os links de outra.
+// Redes sociais da empresa: uma loja não pode editar os links de outra.
 async function carregarRedes(integrada=false){
   if(requerDoceria()) return;
   const rede = await rpc('api_ler_redes_doceria',{p_doceria:tenant});
@@ -771,6 +771,7 @@ async function carregarLojaVirtual(){
   if(requerDoceria())return;
   await window.Salamandras12.loja(contexto12());
   await carregarRedes(true);
+  await window.Salamandras14.bot(contexto12());
 }
 
 async function carregarDocerias(){
@@ -957,7 +958,7 @@ async function carregarCadastros(modo){
     cartao('Editar / remover ingrediente',`
       <form id="editor-ingrediente">
         <div class="formgrid">
-          <div><label>Ingrediente</label><select name="id" id="editor-ingrediente-id">${selectOpcoes(ingredientesVisiveis,i=>i.id,i=>i.nome)}</select></div>
+          <div><label>Matéria-prima</label><select name="id" id="editor-ingrediente-id">${selectOpcoes(ingredientesVisiveis,i=>i.id,i=>i.nome)}</select></div>
           <div><label>Nome</label><input name="nome" required minlength="2"></div>
           <div><label>Unidade</label><select name="unidade">${['un','g','kg','ml','l'].map(u=>`<option value="${u}">${u}</option>`).join('')}</select></div>
           <div><label>Situação</label><select name="ativo"><option value="true">Ativo</option><option value="false">Arquivado</option></select></div>
@@ -1158,7 +1159,7 @@ async function carregarCadastros(modo){
     });
     on('remover-ingrediente','click',async()=>{
       const id=formIng.elements.id.value;if(!id)return;
-      if(!confirm('EXCLUIR ingrediente? Produtos que dependem dele serão arquivados para impedir vendas com receita incompleta.'))return;
+      if(!confirm('EXCLUIR matéria-prima? Produtos que dependem dele serão arquivados para impedir vendas com receita incompleta.'))return;
       try{aviso(await rpc('api_excluir_ingrediente',{p_id:id}));await carregarCadastros(modo);}catch(e){falha(e);}
     });
     }
@@ -1470,7 +1471,7 @@ async function carregarProducao(){
   const editar=pode('adm','confeiteiro');
   const alterarReceita=editar?cartao('Ficha técnica — por 1 unidade de produto',`
     <form class="formgrid" id="ficha"><div><label>Produto</label><select name="produto">${selectOpcoes(produtos.filter(x=>x.ativo),x=>x.id,x=>x.nome)}</select></div>
-    <div><label>Ingrediente</label><select name="ingrediente">${selectOpcoes(ingredientes.filter(x=>x.ativo!==false),x=>x.id,x=>`${x.nome} (${x.unidade})`)}</select></div>
+    <div><label>Matéria-prima</label><select name="ingrediente">${selectOpcoes(ingredientes.filter(x=>x.ativo!==false),x=>x.id,x=>`${x.nome} (${x.unidade})`)}</select></div>
     <div><label>Quantidade (0 para remover)</label><input name="quantidade" type="number" step="0.001" min="0" required></div>
     <button type="submit">Salvar ficha técnica</button></form>`):'';
   const criar=editar?cartao('Nova ordem de produção',`
@@ -1574,7 +1575,7 @@ async function carregarVitrine(){
   }));
 }
 
-// Agenda compartilhada por todos os funcionários APROVADOS da doceria.
+// Agenda compartilhada por todos os funcionários APROVADOS da empresa.
 async function carregarAgenda(){
   const agendas=await rpc('api_agenda_entregas',{p_doceria:tenant});
   container(cartao('Agenda de retiradas e entregas',`

@@ -18,7 +18,7 @@ window.Salamandras12 = (() => {
   const linkVoltar = '<p class="erp12-voltar"><a href="estoque.html">← Voltar ao Estoque</a></p>';
   const titulo = (nome,desc='')=>`<div class="erp12-titulo"><div><div class="erp12-kicker">SALAMANDRAS ERP</div><h1>${E(nome)}</h1>${desc?`<p class="muted">${E(desc)}</p>`:''}</div></div>`;
   const secoes = [
-    ['Ingredientes','Cadastros, lotes e validades','◫','estoque-ingredientes.html'],
+    ['Matérias-primas','Cadastros, lotes e validades','◫','estoque-ingredientes.html'],
     ['Localizações','Geladeiras, prateleiras e capacidades','▤','estoque-locais.html'],
     ['Compras','Fornecedores e recebimento de mercadorias','▣','estoque-compras.html'],
     ['Movimentações','Transferências, consumos e descartes','⇄','estoque-movimentacoes.html'],
@@ -84,9 +84,9 @@ window.Salamandras12 = (() => {
       <form id="f-local" class="erp12-form"><label>Nome (ex.: Prateleira 1)<input name="nome" required minlength="2"></label>
       <label>Área livre (ex.: Depósito)<input name="area"></label><label>Prioridade (1 = maior preferência)<input name="prioridade" type="number" min="1" max="10" value="5" required></label>
       <button type="submit">Criar localização</button></form></section>
-      <section class="card"><h2>Definir capacidade por ingrediente</h2><form id="f-cap" class="erp12-form">
+      <section class="card"><h2>Definir capacidade por matéria-prima</h2><form id="f-cap" class="erp12-form">
       <label>Local<select name="local" required>${opt(ls,l=>l.id,l=>l.nome)}</select></label>
-      <label>Ingrediente<select name="ing" required>${opt(is,i=>i.id,i=>`${i.nome} (${i.unidade})`)}</select></label>
+      <label>Matéria-prima<select name="ing" required>${opt(is,i=>i.id,i=>`${i.nome} (${i.unidade})`)}</select></label>
       <label>Quantidade máxima na unidade cadastrada<input name="cap" type="number" min="0.001" step="0.001" required></label>
       <button type="submit">Salvar capacidade</button></form></section></div>`:'')+
      `<section class="card"><h2>Locais cadastrados</h2><details><summary class="erp12-summary">Ver lista de localizações (${ls.length})</summary>${tabela(['Local','Prioridade','Limites','Conteúdo'],linhas)}</details></section>`);
@@ -112,7 +112,7 @@ window.Salamandras12 = (() => {
       <label>CNPJ/CPF (opcional)<input name="documento"></label><label>E-mail (opcional)<input name="email" type="email"></label>
       <button type="submit">Salvar fornecedor</button></form></section>
       <section class="card"><h2>Receber compra</h2><form id="f-compra" class="erp12-form">
-      <label>Ingrediente<select name="ingrediente" required>${opt(ingred,i=>i.id,i=>`${i.nome} (${i.unidade})`)}</select></label>
+      <label>Matéria-prima<select name="ingrediente" required>${opt(ingred,i=>i.id,i=>`${i.nome} (${i.unidade})`)}</select></label>
       <label>Fornecedor<select name="fornecedor"><option value="">Não informado</option>${opt(forn,x=>x.id,x=>x.nome)}</select></label>
       <label>Quantidade (na unidade do ingrediente)<input name="quantidade" type="number" min="0.001" step="0.001" required></label>
       <label>Valor total da compra (R$)<input name="custo" type="number" min="0" step="0.01" required></label>
