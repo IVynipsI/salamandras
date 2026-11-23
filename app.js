@@ -771,7 +771,7 @@ async function carregarLojaVirtual(){
   if(requerDoceria())return;
   await window.Salamandras12.loja(contexto12());
   await carregarRedes(true);
-  await window.Salamandras14.bot(contexto12());
+  await window.Salamandras15.bot(contexto12());
 }
 
 async function carregarDocerias(){
@@ -1171,7 +1171,7 @@ async function carregarClientes(){
   const cadastro=podeCadastrar?cartao('Cadastrar cliente',`
     <form id="novo-cliente" class="formgrid">
       <div><label>Nome completo</label><input name="nome" required minlength="2"></div>
-      <div><label>Telefone com DDD</label><input name="telefone" type="tel" required placeholder="11999998888"></div>
+      <div><label>Telefone com DDD</label><input name="telefone" type="tel" required placeholder="(99) 99999-9999"></div>
       <button type="submit">Cadastrar cliente</button>
     </form>`):'';
   container(cadastro+cartao('Pesquisar clientes',`
@@ -1219,8 +1219,7 @@ async function carregarClientes(){
       <p><strong>Telefone:</strong> ${esc(c.telefone)}<br>
       <strong>Endereço:</strong> ${esc(c.endereco||'Não cadastrado')}<br>
       <strong>Compras entregues:</strong> ${reais(c.total_gasto)}<br>
-      <strong>Notificações de bolo de fubá:</strong> ${Number(c.cortesias_avisadas)}<br>
-      <strong>Progresso para próxima cortesia:</strong> ${reais(Number(c.total_gasto)%350)} / R$ 350,00</p>
+      </p>
       <h3>Produtos mais comprados (pedidos entregues)</h3>
       ${tabela(['Produto','Unidades'],favorites.map(f=>`<tr><td>${esc(f.produto)}</td><td>${Number(f.quantidade)}</td></tr>`).join(''))}
       <h3>Últimos pedidos</h3>
@@ -1249,6 +1248,7 @@ async function carregarClientes(){
     aviso('Cliente cadastrado.');el.reset();await buscar();
   });
   await buscar();
+  if(window.Salamandras15)await window.Salamandras15.beneficios(contexto12());
 }
 
 async function carregarPedidos(){
@@ -1262,7 +1262,7 @@ async function carregarPedidos(){
     podeCriar ? selecionar('clientes','id,nome,telefone,ativo') : Promise.resolve([])
   ]);
   const criar=podeCriar?cartao('Novo pedido',`
-    <p class="muted">Escolha um cliente cadastrado. Isso permite acumular corretamente os R$ 350 para avisos de cortesia.</p>
+    <p class="muted">Escolha o cliente cadastrado para registrar o histórico da compra.</p>
     <form id="novo-pedido"><div class="formgrid">
     <div><label>Cliente cadastrado</label>
       <select name="cliente_id" required><option value="">Selecione um cliente</option>

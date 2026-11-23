@@ -108,7 +108,7 @@ window.Salamandras12 = (() => {
     const fornecedores=forn.map(x=>`<tr><td><b>${E(x.nome)}</b></td><td>${E(x.telefone||'—')}</td><td>${contato(x.telefone)?`<a class="erp12-whats" target="_blank" rel="noopener noreferrer" href="${contato(x.telefone)}">Conversar no WhatsApp ↗</a>`:'Número não cadastrado'}</td></tr>`).join('');
     se(ctx,linkVoltar+titulo('Compras e fornecedores','Contato direto para negociação; sem mensagens automáticas')+
       (podeEditar?`<div class="erp12-dois"><section class="card"><h2>Cadastrar fornecedor</h2><form id="f-fornecedor" class="erp12-form">
-      <label>Nome<input name="nome" minlength="2" required></label><label>WhatsApp com DDD<input name="telefone" type="tel" placeholder="11999999999"></label>
+      <label>Nome<input name="nome" minlength="2" required></label><label>WhatsApp com DDD<input name="telefone" type="tel" placeholder="(99) 99999-9999"></label>
       <label>CNPJ/CPF (opcional)<input name="documento"></label><label>E-mail (opcional)<input name="email" type="email"></label>
       <button type="submit">Salvar fornecedor</button></form></section>
       <section class="card"><h2>Receber compra</h2><form id="f-compra" class="erp12-form">
@@ -347,7 +347,7 @@ window.Salamandras12 = (() => {
       ${slug?`<p><a target="_blank" rel="noopener" href="loja.html?loja=${encodeURIComponent(slug)}">Abrir modelo do seu site ↗</a></p>
       <p><a target="_blank" rel="noopener" href="loja-geral.html?loja=${encodeURIComponent(slug)}">Abrir modelo de comércio geral ↗</a></p>`:'<p class="muted">O endereço público será gerado automaticamente após o SQL 13E.</p>'}
       ${slug?'<p><a target="_blank" rel="noopener" href="loja-empresarial.html?loja='+encodeURIComponent(slug)+'">Prévia empresarial ↗</a></p>':''}
-      <small class="muted">A escolha fica salva no Supabase. O modelo empresarial requer que a RPC aceite o valor empresarial.</small></section>
+      <small class="muted">A escolha fica salva no Supabase. O modelo de loja fica salvo por empresa.</small></section>
       <section class="card erp15-marketplace"><h2>Marketplaces · Mercado Livre e Shopee</h2>
       <p>Área de preparação para integração por empresa. A conexão e a publicação automática dependem de autorização OAuth e APIs oficiais; ainda não estão habilitadas.</p>
       <div class="erp15-marketplace-linhas"><div><strong>Mercado Livre</strong><span>Não conectado</span><a target="_blank" rel="noopener noreferrer" href="https://developers.mercadolivre.com.br/pt_br/publicacao-de-produtos/gestao-de-identidades-e-acessos-oauth-e-tokens">Requisitos da API ↗</a></div>
@@ -420,7 +420,7 @@ window.Salamandras12 = (() => {
        <section class="card"><h2>Pedidos do dia</h2><div class="erp12-abas"><button class="sec small" id="ver-fazer">A fazer (${d.a_fazer||0})</button><button class="sec small" id="ver-concluidos">Concluídos (${d.concluidos||0})</button></div>
         <div id="tabela-pedidos-hoje"></div></section>
       </div><div><section class="card"><h2>Avisos importantes ${alert.quantidade?`<span class="erp12-contador">${alert.quantidade}</span>`:''}</h2>${alert.html}<div id="rh13b-avisos-gerencia"></div></section>
-      <section class="card"><h2>Cortesias</h2><div id="cortesias-hoje"><p class="muted">Consultando avisos pendentes...</p></div></section></div></div>`);
+      <section class="card"><h2>Benefícios da empresa</h2><p class="muted">Gerencie cortesias e descontos pela aba Clientes.</p><a href="clientes.html">Configurar benefícios →</a></section></div></div>`);
     // Gerentes e ADM: aviso compacto; a lista completa permanece fechada em Movimentacoes.
     try{
       const cap=await ctx.rpc('api_13b_acessos',{p_empresa:ctx.tenant});
@@ -442,17 +442,6 @@ window.Salamandras12 = (() => {
     };
     ac('ver-fazer','click',()=>montar(false));ac('ver-concluidos','click',()=>montar(true));montar(false);
     habilitarLeitura(ctx,()=>painel(ctx));
-    if(admin){
-      try{
-        const [avisos,clientes]=await Promise.all([ctx.selecionar('notificacoes_cortesia'),ctx.selecionar('clientes','id,nome')]);
-        const pend=avisos.filter(x=>!x.lida_em),nomes=new Map(clientes.map(x=>[x.id,x.nome]));
-        f('cortesias-hoje').innerHTML=pend.length?`<details><summary class="erp12-summary">${pend.length} cortesia(s) pendente(s)</summary>
-         ${pend.map(x=>`<div class="erp12-alerta-linha"><span>${E(nomes.get(x.cliente_id)||'Cliente')} — ${Number(x.quantidade_bolos)} cortesia(s)</span><button class="small sec" data-cortesia12="${E(x.id)}">Confirmar leitura</button></div>`).join('')}</details>`:'<p class="muted">Nenhuma cortesia pendente.</p>';
-        document.querySelectorAll('[data-cortesia12]').forEach(b=>b.addEventListener('click',async()=>{
-          try{await ctx.rpc('api_marcar_cortesia_lida',{p_notificacao:b.dataset.cortesia12});ctx.aviso('Cortesia reconhecida');await painel(ctx)}catch(err){ctx.falha(err)}
-        }));
-      }catch(_){f('cortesias-hoje').innerHTML='<p class="muted">Nenhuma informação disponível para esta conta.</p>'}
-    }else{f('cortesias-hoje').innerHTML='<p class="muted">Avisos de cortesia disponíveis para a gestão autorizada.</p>'}
     if(admin){
       ac('abrir-grafico','click',()=>{
         const el=f('grafico-dia');if(!el)return;

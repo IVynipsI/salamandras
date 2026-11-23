@@ -8,7 +8,7 @@
  const cart=[];let produtos=[],doceria={};$('ano').textContent=new Date().getFullYear();
  if(!db||!slug){$('status').textContent='Loja não configurada.';return}
  try{
-  const {data,error}=await db.rpc('api_vitrine_publica',{p_slug:slug});if(error)throw error;
+  const {data,error}=await db.rpc('api_15_vitrine_publica',{p_slug:slug});if(error)throw error;
   if(!data?.doceria)throw new Error('Esta loja não está publicada ou não existe.');
   doceria=data.doceria;produtos=data.produtos||[];document.title=doceria.nome+' | Loja virtual';
   $('marca').textContent=doceria.nome;$('rodape-marca').textContent=doceria.nome;

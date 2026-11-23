@@ -270,8 +270,8 @@ const produtosDemo = [
 async function iniciar() {
   const params = new URLSearchParams(window.location.search);
   if (params.get('demo') === '1') {
-    configurarDoceria({nome:'Doceria Teste',whatsapp:'5511966128275'});
-    desenharProdutos(produtosDemo,'5511966128275');
+    configurarDoceria({nome:'Doceria Teste',whatsapp:''});
+    desenharProdutos(produtosDemo,'');
     aviso('MODO DEMONSTRAÇÃO: estes produtos e valores são fictícios. Retire ?demo=1 para consultar o Supabase.');
     return;
   }
@@ -293,7 +293,7 @@ async function iniciar() {
       window.SALAMANDRAS_CONFIG.key,
       { auth: { persistSession:false, autoRefreshToken:false, detectSessionInUrl:false } }
     );
-    const {data,error} = await db.rpc('api_vitrine_publica',{p_slug:slug});
+    const {data,error} = await db.rpc('api_15_vitrine_publica',{p_slug:slug});
     if (error) throw error;
     if (!data?.doceria) {
       aviso('Esta página ainda não foi publicada. Confira o slug e a publicação da doceria no Supabase.');

@@ -479,3 +479,21 @@ html[data-tema-erp="escuro"] .rh13-grupo-contagem{background:#295347;color:#b7f0
 .erp15-marketplace-linhas>div{border:1px solid var(--line,#d8e2df);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px}
 .erp15-marketplace-linhas span{font-size:12px;opacity:.8}.erp15-marketplace-linhas a{font-size:12px}
 @media(max-width:540px){.erp15-modelo{flex-wrap:wrap}.erp15-modelo button{width:100%}}
+
+/* Salamandras 15B | componentes compactos e contraste de tema */
+.erp15-modelo{background:#fff!important;color:#18332d!important;border:1px solid #c7d7d2}
+.erp15-modelo h2{color:#153c34!important}.erp15-modelo p{color:#48655c!important}
+html[data-tema-erp="escuro"] .erp15-modelo{background:#20343a!important;color:#edf8f6!important;border-color:#46636a!important}
+html[data-tema-erp="escuro"] .erp15-modelo h2{color:#f1fbf8!important}
+html[data-tema-erp="escuro"] .erp15-modelo p{color:#bacfcb!important}
+.erp15-config{margin-top:15px}.erp15-config details{border:1px solid var(--erp12-borda,#d5e1db);border-radius:12px;padding:13px 15px;margin:10px 0}
+.erp15-config details>summary{cursor:pointer;font-weight:700}.erp15-config .formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:12px 0}
+.erp15-config label{display:grid;gap:6px;font-size:13px}.erp15-config textarea{width:100%;min-height:70px}
+.erp15-config .linha{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.erp15-config .linha label{display:flex;gap:6px;align-items:center}
+.erp15-config input[type=checkbox]{width:auto}
+.erp15-opcao{display:grid;grid-template-columns:65px minmax(110px,1fr) 125px minmax(140px,1.4fr) auto;gap:9px;align-items:end;padding:10px 0;border-bottom:1px solid var(--erp12-borda,#d5e1db)}
+.erp15-opcao input,.erp15-opcao select{width:100%;min-width:0}
+.erp15-produtos{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:12px 0}
+.erp15-produto,.erp15-beneficio{border:1px solid var(--erp12-borda,#d5e1db);padding:12px;border-radius:12px}
+.erp15-produto strong{display:block;margin-bottom:10px}.erp15-config .muted{font-size:12px}
+@media(max-width:800px){.erp15-opcao{grid-template-columns:70px 1fr}.erp15-opcao>label:nth-child(4),.erp15-opcao>button{grid-column:1/-1}}

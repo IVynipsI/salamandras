@@ -43,13 +43,26 @@ export async function handler(event){
    try{
     const state=await rpc('api_14_wa_inbound',{p_phone:String(phone),p_cliente:String(from)});
     if(!state?.empresa_id)continue;
-    const message=String(msg.text?.body||'').trim();
+    const message=String(msg.text?.body||msg.interactive?.button_reply?.id||'').trim();
+    const cfg=await rpc('api_15_wa_resposta',{p_empresa:state.empresa_id});
+    const choices=Array.isArray(cfg.menu)?cfg.menu:[];
+    const menu=choices.map(o=>String(o.numero)+' — '+String(o.titulo||'')).join('\\n');
+    const welcome=String(cfg.boas_vindas||'Olá! Seja bem-vindo(a)!');
     let answer='';
-    if(state.responder)answer='Olá! 👋 Bem-vindo à nossa empresa!\n\n1 — Ver catálogo\n2 — Consultar pedido\n3 — Falar com atendente';
-    else if(message==='1')answer='Solicite o link do catálogo da nossa loja ao atendente.';
-    else if(message==='2')answer='Informe seu número de pedido para o atendente.';
-    else if(message==='3')answer='Um atendente poderá assumir esta conversa.';
-    if(answer)await send(phone,from,answer);
+    if(state.responder) answer=welcome+'\\n\\n'+menu;
+    else {
+      const option=choices.find(o=>String(o.numero)===message);
+      if(!option)answer=String(cfg.mensagem_invalida||'Digite uma opção do menu.')+'\\n\\n'+menu;
+      else if(option.tipo==='menu')answer=welcome+'\\n\\n'+menu;
+      else if(option.tipo==='humano')answer=String(option.resposta||cfg.mensagem_humano||'Um atendente continuará o atendimento.');
+      else if(option.tipo==='catalogo'){
+       const itens=Array.isArray(cfg.produtos)?cfg.produtos:[];
+       const list=itens.map((p,i)=>(i+1)+'. '+String(p.nome)+' — R$ '+Number(p.preco||0).toFixed(2).replace('.',',')).join('\\n');
+       const link=String(cfg.slug||'')?'\\nLoja: https://salamandras-sistem.netlify.app/loja.html?loja='+encodeURIComponent(cfg.slug):'';
+       answer=String(option.resposta||'Nosso catálogo:')+'\\n'+(list||'Nenhum produto selecionado para o WhatsApp.')+link;
+      } else answer=String(option.resposta||'Nossa equipe dará continuidade ao atendimento.');
+    }
+    if(answer)await send(phone,from,answer.slice(0,4096));
    }catch(e){console.error('WhatsApp handler failed:',e.message)}
   }
  }
