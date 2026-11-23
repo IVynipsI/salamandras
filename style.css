@@ -470,3 +470,12 @@ html[data-tema-erp="escuro"] .rh13-grupo-contagem{background:#295347;color:#b7f0
 .rh13-global-detalhes>details{padding:.45rem 0;border-top:1px solid var(--borda,#dbe5e0)}
 .rh13-global-form .rh13-acoes{display:flex;gap:.5rem;flex-wrap:wrap}
 .rh13-global-info{color:var(--cor-secundaria,#60756c)}
+/* Salamandras 15A: modelos compactos */
+.erp15-modelos{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:10px;margin:12px 0 16px}
+.erp15-modelo{display:flex;gap:10px;align-items:center;border:1px solid var(--line,#d8e2df);border-radius:12px;padding:12px;background:var(--card,#fff);min-width:0}
+.erp15-modelo>span{font-size:24px;flex-shrink:0}.erp15-modelo>div{flex:1;min-width:0}.erp15-modelo h2{font-size:15px;margin:0 0 3px}.erp15-modelo p{font-size:12px;margin:0;line-height:1.35}
+.erp15-modelo button{font-size:12px;padding:8px 10px;white-space:nowrap}
+.erp15-marketplace-linhas{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:10px}
+.erp15-marketplace-linhas>div{border:1px solid var(--line,#d8e2df);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.erp15-marketplace-linhas span{font-size:12px;opacity:.8}.erp15-marketplace-linhas a{font-size:12px}
+@media(max-width:540px){.erp15-modelo{flex-wrap:wrap}.erp15-modelo button{width:100%}}

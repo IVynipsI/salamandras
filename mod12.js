@@ -329,7 +329,7 @@ window.Salamandras12 = (() => {
     }));
     document.querySelectorAll('[data-empresa-excluir]').forEach(b=>b.addEventListener('click',async()=>{
       const nome=lista.find(x=>x.id===b.dataset.empresaExcluir)?.nome||'';
-      const frase=prompt('Para excluir uma empresa encerrada sem registros vinculados, digite EXCLUIR '+nome);
+      const frase=prompt('Exclusão definitiva: o backend precisa desvincular todas as contas com segurança. Para confirmar, digite EXCLUIR '+nome);
       if(frase!=='EXCLUIR '+nome)return;
       try{ctx.aviso(await ctx.rpc('api_13e_excluir_empresa_definitiva',{p_empresa:b.dataset.empresaExcluir,p_confirmacao:frase}));await empresas(ctx)}catch(err){ctx.falha(err)}
     }));
@@ -338,18 +338,24 @@ window.Salamandras12 = (() => {
     const conf=await ctx.rpc('api_config_doceria',{p_doceria:ctx.tenant});
     const slug=conf?.slug||'';
     se(ctx,titulo('Loja virtual','Selecione o modelo mais adequado ao segmento da empresa')+
-      `<div class="erp12-dois"><section class="card"><div class="erp12-modelo">🍰</div><h2>Docerias e alimentação</h2>
-      <p class="muted">Mantém o modelo anterior, com fotos e cardápio.</p>
-      <button data-modelo="doceria">Selecionar modelo</button></section>
-      <section class="card"><div class="erp12-modelo">🛍</div><h2>Comércio geral</h2><p class="muted">Catálogo, pesquisa por categorias, grade de produtos e carrinho.</p>
-      <button data-modelo="comercio">Selecionar modelo</button></section></div>
+      `<div class="erp15-modelos">
+<section class="erp15-modelo"><span>🍽️</span><div><h2>Comércio de alimentos</h2><p>Cardápio, fotos e pedidos.</p></div><button type="button" data-modelo="doceria">Selecionar</button></section>
+<section class="erp15-modelo"><span>🛍️</span><div><h2>Comércio geral</h2><p>Produtos, categorias e carrinho.</p></div><button type="button" data-modelo="comercio">Selecionar</button></section>
+<section class="erp15-modelo"><span>🏢</span><div><h2>Empresarial</h2><p>Catálogo técnico e apresentação B2B.</p></div><button type="button" data-modelo="empresarial">Selecionar</button></section>
+</div>
       <section class="card"><h2>Visualização da sua empresa</h2>
       ${slug?`<p><a target="_blank" rel="noopener" href="loja.html?loja=${encodeURIComponent(slug)}">Abrir modelo do seu site ↗</a></p>
       <p><a target="_blank" rel="noopener" href="loja-geral.html?loja=${encodeURIComponent(slug)}">Abrir modelo de comércio geral ↗</a></p>`:'<p class="muted">O endereço público será gerado automaticamente após o SQL 13E.</p>'}
-      <small class="muted">A escolha fica salva na empresa. A URL da loja pode ser divulgada depois de conferir o modelo e ativar a publicação.</small></section>`);
+      ${slug?'<p><a target="_blank" rel="noopener" href="loja-empresarial.html?loja='+encodeURIComponent(slug)+'">Prévia empresarial ↗</a></p>':''}
+      <small class="muted">A escolha fica salva no Supabase. O modelo empresarial requer que a RPC aceite o valor empresarial.</small></section>
+      <section class="card erp15-marketplace"><h2>Marketplaces · Mercado Livre e Shopee</h2>
+      <p>Área de preparação para integração por empresa. A conexão e a publicação automática dependem de autorização OAuth e APIs oficiais; ainda não estão habilitadas.</p>
+      <div class="erp15-marketplace-linhas"><div><strong>Mercado Livre</strong><span>Não conectado</span><a target="_blank" rel="noopener noreferrer" href="https://developers.mercadolivre.com.br/pt_br/publicacao-de-produtos/gestao-de-identidades-e-acessos-oauth-e-tokens">Requisitos da API ↗</a></div>
+      <div><strong>Shopee</strong><span>Não conectado</span><a target="_blank" rel="noopener noreferrer" href="https://open.shopee.com/">Portal de integração ↗</a></div></div>
+      <p class="muted">Não informe senhas ou tokens aqui. A vinculação será realizada individualmente por cada empresa, quando o fluxo seguro estiver ativo.</p></section>`);
     document.querySelectorAll('[data-modelo]').forEach(b=>b.addEventListener('click',async()=>{
       if(!confirm('Definir este modelo de loja para a empresa?'))return;
-      try{ctx.aviso(await ctx.rpc('api_12_definir_modelo_loja',{p_empresa:ctx.tenant,p_modelo:b.dataset.modelo}))}catch(err){ctx.falha(err)}
+      try{ctx.aviso(await ctx.rpc('api_12_definir_modelo_loja',{p_empresa:ctx.tenant,p_modelo:b.dataset.modelo}))}catch(err){ctx.falha(new Error(b.dataset.modelo==='empresarial'?'É necessário habilitar o valor empresarial na função SQL de modelos. '+err.message:err.message))}
     }));
   }
   async function financeiro(ctx){

@@ -8,7 +8,7 @@ try{const cfg=window.SALAMANDRAS_CONFIG;if(!cfg||!cfg.url||!cfg.key)throw Error(
 const client=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:false,autoRefreshToken:false}});
 const {data,error}=await client.rpc('api_12_modelo_publico',{p_slug:slug});if(error)throw error;
 if(!data){document.getElementById('status').textContent='Loja não encontrada ou temporariamente indisponível.';return;}
-location.replace((data==='comercio'?'loja-geral.html':'loja-doceria.html')+'?loja='+encodeURIComponent(slug));
+location.replace((data==='empresarial'?'loja-empresarial.html':data==='comercio'?'loja-geral.html':'loja-doceria.html')+'?loja='+encodeURIComponent(slug));
 }catch(err){document.getElementById('status').textContent='Não foi possível abrir a loja. Verifique a publicação ou contate a empresa.';console.warn(err);}}
 )();
 </script></body></html>
