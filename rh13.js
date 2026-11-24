@@ -135,24 +135,25 @@ window.Salamandras13 = (() => {
       vincularFilaGlobal(ctx);return;}
     const lista=protegido(usuarios0),cargos=protegido(cargos0?.cargos).filter(c=>c.ativo),
       banidos=protegido(banidos0);
-    const opcoes=`<option value="">Selecione um cargo</option>${opts(cargos,c=>c.id,c=>c.nome)}<option value="ADM">ADM (administrador)</option>`;
+    const opcoes=`<option value="">Selecione um cargo</option>${opts(cargos,c=>c.id,c=>c.nome)}${ctx.perfil.cargo==='dev'?'<option value="ADM">ADM (administrador)</option>':''}`;
     const linha=u=>{
       const nome=u.nome||'Nome não informado';const isSelf=u.id===ctx.perfil.id;
+      const admProtegido=u.cargo==='adm'&&ctx.perfil.cargo!=='dev';
       const decisao = u.status==='pendente'?`<div class="rh13-acoes"><select data-papel="${E(u.id)}">${opcoes}</select>
        <button type="button" class="small" data-aprovar="${E(u.id)}">Aprovar</button>
        <button type="button" class="sec small" data-rejeitar="${E(u.id)}">Rejeitar</button></div>`:'';
-      const mudar=(!isSelf&&['aprovado','bloqueado'].includes(u.status))?`<div class="rh13-acoes"><select data-papel="${E(u.id)}">${opcoes}</select>
+      const mudar=(!isSelf&&!admProtegido&&['aprovado','bloqueado'].includes(u.status))?`<div class="rh13-acoes"><select data-papel="${E(u.id)}">${opcoes}</select>
        <button type="button" class="sec small" data-trocar="${E(u.id)}">Alterar cargo</button>
        <button type="button" class="sec small" data-suspender="${E(u.id)}" data-suspender-valor="${u.status==='aprovado'}">${u.status==='aprovado'?'Suspender':'Reativar'}</button>
        <button type="button" class="sec small" data-excluir="${E(u.id)}">Excluir acesso</button>
        <button type="button" class="danger small" data-banir="${E(u.id)}">Bloquear permanentemente</button></div>`:'';
       return `<tr><td><b>${E(nome)}</b><br><small>${E(u.email)}</small></td><td>${E(u.cargo_nome)}</td>
-       <td><span class="tag ${E(u.status)}">${E(statusLabel(u.status))}</span></td><td>${decisao||mudar||'—'}</td></tr>`;
+       <td><span class="tag ${E(u.status)}">${E(statusLabel(u.status))}</span></td><td>${decisao||mudar||(admProtegido?'Gerenciado pelo DEV':'—')}</td></tr>`;
     };
     const ativos=lista.filter(u=>!['rejeitado','bloqueado'].includes(u.status) && (ctx.perfil.cargo!=='dev'||u.status!=='pendente'));
     const historico=lista.filter(u=>['rejeitado','bloqueado'].includes(u.status));
     const blocos=`${globalHtml}<div class="rh13-kicker">SALAMANDRAS ERP / ADMINISTRAÇÃO</div><h1>Usuários</h1>
-      <p class="muted">Gerencie sua equipe, crie cargos e defina as abas que cada cargo pode acessar. O DEV não pertence à equipe.</p>
+      <p class="muted">Gerencie funcionários e permissões da empresa. Somente o DEV pode nomear ou alterar administradores (ADM), inclusive vários ADMs na mesma empresa.</p>
       ${C('Pesquisar funcionários',`<div class="formgrid"><div><label>Nome ou e-mail</label><input id="rh13-busca" type="search" placeholder="Buscar funcionário"></div>
        <div><label>Cargo</label><select id="rh13-filtro-cargo"><option value="">Todos</option><option value="adm">ADM</option>${opts(cargos,c=>c.id,c=>c.nome)}</select></div>
        <div><label>Situação</label><select id="rh13-filtro-situacao"><option value="">Todas</option><option value="aprovado">Ativos</option><option value="pendente">Pendentes</option></select></div></div>`)}

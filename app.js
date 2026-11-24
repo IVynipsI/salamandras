@@ -663,7 +663,7 @@ async function carregarRedes(integrada=false){
         <div>
           <label for="rede-whatsapp">WhatsApp comercial</label>
           <input id="rede-whatsapp" name="whatsapp" type="tel" inputmode="tel"
-            placeholder="(11) 96612-8275" value="${esc(rede.whatsapp||'')}" maxlength="32">
+            placeholder="(99) 99999-9999" value="${esc(rede.whatsapp||'')}" maxlength="32">
           <p class="muted">Pode informar com DDD; o sistema acrescenta +55 automaticamente.</p>
         </div>
         <div>
@@ -686,7 +686,7 @@ async function carregarRedes(integrada=false){
     </form>
     ${linkPublico
       ? `<p><a href="${esc(linkPublico)}" target="_blank" rel="noopener noreferrer">Abrir site público desta empresa ↗</a></p>`
-      : `<p class="muted">A página ainda não foi publicada. Peça ao DEV para configurar o endereço da loja no módulo Empresas.</p>`}
+      : `<p class="muted">A página ainda não foi publicada. O ADM pode configurar e publicar o endereço da loja nesta aba.</p>`}
   `) + cartao('Imagem de capa do site público',`
     <p class="muted">ADM e DEV podem trocar a fotografia principal da loja. Aparece automaticamente no site após atualizar a página.</p>
     <div style="margin:12px 0">
