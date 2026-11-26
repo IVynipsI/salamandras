@@ -480,12 +480,14 @@ async function iniciarApp(){
     on('sair','click',sair);
     docerias=await rpc('api_docerias');
     if(p.cargo==='dev'){
+      // A Area DEV e um escopo proprio (sem empresa), persistido entre paginas.
+      // O valor especial evita retornar automaticamente para a primeira empresa.
       const escolhido=sessionStorage.getItem('salamandras_tenant');
-      tenant=docerias.some(d=>d.id===escolhido)?escolhido:(docerias[0]?.id||null);
+      tenant=docerias.some(d=>d.id===escolhido)?escolhido:null;
       $('seletor-tenant').innerHTML=`<div class="dev-topbar"><strong>ÁREA DEV</strong><select id="trocar-doceria" aria-label="Empresa para administrar"><option value="">Todas as empresas / DEV</option>${selectOpcoes(docerias,d=>d.id,d=>d.nome,tenant)}</select><a href="usuarios.html">Usuários</a><a href="solicitacoes.html">Solicitações</a><a href="empresas.html">Empresas</a></div>`;
       on('trocar-doceria','change',ev=>{
         tenant=ev.target.value||null;
-        sessionStorage.setItem('salamandras_tenant',tenant||'');
+        sessionStorage.setItem('salamandras_tenant',tenant||'__dev__');
         atualizarPermissoes().then(carregarPagina).catch(falha);
       });
     }else{
@@ -507,6 +509,10 @@ async function carregarPagina(){
   if(pagina==='permissoes'){window.location.replace('usuarios.html#cargos');return;}
   if(pagina==='usuarios')return window.Salamandras13.usuarios(contexto12());
   if(pagina==='redes'){location.replace('loja-modelos.html');return;}
+  if(!tenant && perfil?.cargo==='dev'){
+    container(cartao('Área DEV — todas as empresas','Esta é a central da plataforma. Para acessar módulos operacionais como Painel, Financeiro, RH ou Loja Virtual, selecione uma empresa no topo. Usuários, Empresas e Solicitações podem ser gerenciados pela Área DEV.'));
+    return;
+  }
   if(requerDoceria())return;
   if(pagina==='painel'){await window.Salamandras12.painel(contexto12());
     if(window.Salamandras13C)await window.Salamandras13C.avisosPainel(contexto12());return;}
