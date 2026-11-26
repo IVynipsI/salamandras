@@ -353,7 +353,7 @@ async function iniciarLogin(){
     $('login-email').focus();
   });
 
-  // Convites individuais. Nao listar empresas publicamente.
+  // Cadastro publico e por convite coexistem. Somente empresas com cadastro aberto sao listadas.
   const conviteUrl=new URLSearchParams(location.search).get('convite');
   if(conviteUrl && /^[0-9a-f]{64}$/i.test(conviteUrl)){
     try{const r=await rpc('api_17_convite_validar',{p_token:conviteUrl});
@@ -362,7 +362,24 @@ async function iniciarLogin(){
       }else aviso('Convite invalido, expirado ou utilizado.',true);
     }catch(e){falha(e)}
   }
-  $('mostrar-cadastro').hidden=!sessionStorage.getItem('salamandras_convite');
+  let empresasCadastro=[];
+  try{
+    const opcoes=await rpc('api_13d_empresas_cadastro');
+    empresasCadastro=Array.isArray(opcoes)?opcoes:[];
+  }catch(e){falha(e)}
+  const seletor=$('cad-empresa');
+  const avisoCadastro=$('cad-empresa-aviso');
+  if(seletor){
+    seletor.innerHTML='<option value="">Selecione uma empresa</option>'+empresasCadastro.map(e=>
+      '<option value="'+esc(e.id)+'">'+esc(e.nome)+'</option>').join('');
+    seletor.disabled=empresasCadastro.length===0;
+  }
+  if(avisoCadastro)avisoCadastro.textContent=empresasCadastro.length===0
+    ?'Nenhuma empresa está aceitando cadastros públicos neste momento. Solicite um convite ao administrador.'
+    :'Selecione uma empresa com cadastro aberto. Sua conta ainda precisará ser aprovada.';
+  $('mostrar-cadastro').hidden=false;
+  const conviteAtivo=()=>Boolean(sessionStorage.getItem('salamandras_convite'));
+  if(conviteAtivo()&&seletor)seletor.closest('div').hidden=true;
 
   // Conta existente: somente email e senha. NUNCA tenta cadastrar se a senha estiver errada.
   form('form-login',async()=>{
@@ -386,14 +403,17 @@ async function iniciarLogin(){
     const nome=$('cad-nome').value.trim().replace(/\s+/g,' ');
     const email=$('cad-email').value.trim().toLowerCase();
     const password=$('cad-senha').value;
-    if(!sessionStorage.getItem('salamandras_convite'))throw new Error('Abra o convite da empresa para criar sua conta.');
+    const tokenConvite=sessionStorage.getItem('salamandras_convite');
+    const empresaEscolhida=tokenConvite?null:$('cad-empresa')?.value;
+    if(!tokenConvite&&!empresasCadastro.some(e=>e.id===empresaEscolhida))
+      throw new Error('Selecione uma empresa que esteja aceitando cadastros ou abra um convite.');
     if(nome.length<5||nome.split(' ').length<2)
       throw new Error('Informe nome e sobrenome.');
     if(password.length<8)
       throw new Error('Crie uma senha com pelo menos 8 caracteres.');
 
     const {data,error}=await db.auth.signUp({
-      email,password,options:{data:{nome_completo:nome}}
+      email,password,options:{data:{nome_completo:nome,empresa_solicitada_id:empresaEscolhida}}
     });
     if(error){
       const msg=String(error.message||'').toLowerCase();
@@ -452,7 +472,7 @@ async function rotaAposLogin(){
   $('pendente-titulo').textContent=p.status==='pendente'?'Aguardando aprovação'
     : p.status==='rejeitado'?'Acesso não aprovado':p.status==='bloqueado'?'Acesso suspenso':`Acesso: ${p.status}`;
   $('pendente-texto').textContent=p.status==='pendente'
-    ? 'Seu cadastro aguarda aprovação da empresa vinculada ao convite.'
+    ? 'Seu cadastro aguarda aprovação do administrador da empresa escolhida ou vinculada ao convite.'
     : p.status==='rejeitado'
       ? 'Sua aprovação foi cancelada ou o cadastro foi rejeitado. Você pode solicitar novamente com este mesmo e-mail e senha.'
       : 'Seu acesso está bloqueado. Consulte um administrador.';

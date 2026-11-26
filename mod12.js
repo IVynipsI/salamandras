@@ -311,14 +311,22 @@ window.Salamandras12 = (() => {
     const lista=await ctx.rpc('api_12_empresas_lista');
     const html=`<section class="card erp12-admemp"><h2>Contratos e acesso das empresas</h2>
       <p class="muted">Suspender por inadimplência bloqueia o acesso operacional de todos da empresa. Remover encerra a utilização sem apagar o histórico; restauração exige ação do DEV.</p>
-      ${tabela(['Empresa','Situação','Modelo de loja','Ações'],(lista||[]).map(d=>`<tr><td><b>${E(d.nome)}</b></td>
-       <td><span class="erp12-situacao ${E(d.situacao)}">${E(d.situacao)}</span></td><td>${E(d.tema)}</td>
+      ${tabela(['Empresa','Situação','Cadastro público','Modelo de loja','Ações'],(lista||[]).map(d=>`<tr><td><b>${E(d.nome)}</b></td>
+       <td><span class="erp12-situacao ${E(d.situacao)}">${E(d.situacao)}</span></td>
+       <td><button type="button" class="small ${d.cadastro_publico?'':'sec'}" data-cadastro-toggle="${E(d.id)}" data-cadastro-valor="${d.cadastro_publico?'false':'true'}">${d.cadastro_publico?'Desabilitar cadastro':'Habilitar cadastro'}</button>
+       <small class="muted">${d.cadastro_publico?'Aberto':'Fechado'}</small></td><td>${E(d.tema)}</td>
        <td><div class="acoes">
        ${d.situacao==='ativa'?`<button type="button" class="small sec" data-empresa-status="suspensa" data-empresa-id="${E(d.id)}">Bloquear empresa</button>`:`<button type="button" class="small sec" data-empresa-status="ativa" data-empresa-id="${E(d.id)}">Reativar empresa</button>`}
        ${d.situacao!=='encerrada'?`<button type="button" class="small danger" data-empresa-status="encerrada" data-empresa-id="${E(d.id)}">Remover empresa</button>`:`<button type="button" class="small danger" data-empresa-excluir="${E(d.id)}">Excluir definitivamente</button>`}
        </div></td></tr>`).join(''))}</section>`;
     f('conteudo').insertAdjacentHTML('afterbegin',titulo('Empresas','Gerenciamento exclusivo do DEV'));
     f('conteudo').insertAdjacentHTML('beforeend',html);
+    document.querySelectorAll('[data-cadastro-toggle]').forEach(b=>b.addEventListener('click',async()=>{
+      const d=lista.find(x=>x.id===b.dataset.cadastroToggle);
+      const aberto=b.dataset.cadastroValor==='true';
+      if(!confirm((aberto?'Abrir':'Fechar')+' cadastro público da empresa '+(d?.nome||'')+'?'))return;
+      try{ctx.aviso(await ctx.rpc('api_18_cadastro_publico_definir',{p_empresa:b.dataset.cadastroToggle,p_habilitado:aberto}));location.reload()}catch(e){ctx.falha(e)}
+    }));
     document.querySelectorAll('[data-empresa-status]').forEach(b=>b.addEventListener('click',async()=>{
       const nome=lista.find(x=>x.id===b.dataset.empresaId)?.nome||'Empresa';
       const st=b.dataset.empresaStatus;
@@ -329,7 +337,7 @@ window.Salamandras12 = (() => {
     }));
     document.querySelectorAll('[data-empresa-excluir]').forEach(b=>b.addEventListener('click',async()=>{
       const nome=lista.find(x=>x.id===b.dataset.empresaExcluir)?.nome||'';
-      const frase=prompt('Exclusão definitiva: o backend precisa desvincular todas as contas com segurança. Para confirmar, digite EXCLUIR '+nome);
+      const frase=prompt('ATENÇÃO: exclusão permanente é irreversível. Faça backup. Para confirmar, digite EXCLUIR '+nome);
       if(frase!=='EXCLUIR '+nome)return;
       try{ctx.aviso(await ctx.rpc('api_13e_excluir_empresa_definitiva',{p_empresa:b.dataset.empresaExcluir,p_confirmacao:frase}));await empresas(ctx)}catch(err){ctx.falha(err)}
     }));
