@@ -18,8 +18,8 @@ window.Salamandras12 = (() => {
   const linkVoltar = '<p class="erp12-voltar"><a href="estoque.html">← Voltar ao Estoque</a></p>';
   const titulo = (nome,desc='')=>`<div class="erp12-titulo"><div><div class="erp12-kicker">SALAMANDRAS ERP</div><h1>${E(nome)}</h1>${desc?`<p class="muted">${E(desc)}</p>`:''}</div></div>`;
   const secoes = [
-    ['Matérias-primas','Cadastros, lotes e validades','◫','estoque-ingredientes.html'],
-    ['Localizações','Geladeiras, prateleiras e capacidades','▤','estoque-locais.html'],
+    ['Insumos','Cadastros, lotes e validades','◫','estoque-ingredientes.html'],
+    ['Localizações','Áreas, prateleiras e capacidades','▤','estoque-locais.html'],
     ['Compras','Fornecedores e recebimento de mercadorias','▣','estoque-compras.html'],
     ['Movimentações','Transferências, consumos e descartes','⇄','estoque-movimentacoes.html'],
     ['Custos e análises','Custos por lote e simulador de preços','▥','estoque-custos.html'],
@@ -33,7 +33,7 @@ window.Salamandras12 = (() => {
     const dados=await alertas(ctx);
     const venc=dados?.vencimento||[],esg=dados?.esgotados||[],baixo=dados?.baixo||[];
     const itens=[];
-    if(baixo.length)itens.push(`<details class="erp12-alerta critical"><summary>● ${baixo.length} ingrediente(s) com estoque baixo</summary><div class="erp12-alerta-corpo">${baixo.map(x=>`<p><b>${E(x.nome)}</b> — ${num(x.quantidade)} ${E(x.unidade)} (mínimo ${num(x.minimo)})</p>`).join('')}</div></details>`);
+    if(baixo.length)itens.push(`<details class="erp12-alerta critical"><summary>● ${baixo.length} insumo(s) com estoque baixo</summary><div class="erp12-alerta-corpo">${baixo.map(x=>`<p><b>${E(x.nome)}</b> — ${num(x.quantidade)} ${E(x.unidade)} (mínimo ${num(x.minimo)})</p>`).join('')}</div></details>`);
     if(venc.length)itens.push(`<details class="erp12-alerta warn"><summary>● ${venc.length} lote(s) perto da validade ou vencidos</summary><div class="erp12-alerta-corpo">${venc.map(x=>`<p><b>${E(x.ingrediente)} · Lote ${E(x.codigo)}</b> — ${x.dias<0?'Vencido há '+Math.abs(x.dias)+' dia(s)':x.dias===0?'Vence hoje':'Vence em '+x.dias+' dia(s)'} (${F(x.validade)}) · ${num(x.quantidade)} ${E(x.unidade)}</p>`).join('')}</div></details>`);
     if(esg.length)itens.push(`<details class="erp12-alerta neutral"><summary>● ${esg.length} lote(s) esgotado(s) aguardam leitura</summary><div class="erp12-alerta-corpo">${esg.map(x=>`<div class="erp12-alerta-linha"><span><b>${E(x.ingrediente)} · Lote ${E(x.codigo)}</b><small>Saldo zerado e histórico preservado</small></span><button type="button" class="sec small" data-lote-lido="${E(x.id)}">Confirmar leitura</button></div>`).join('')}</div></details>`);
     const html=`<div class="erp12-alertas">${itens.join('')||'<p class="muted">Nenhum alerta crítico no momento.</p>'}${emEstoque?'<a class="erp12-link" href="estoque-alertas.html">Central de alertas →</a>':''}</div>`;
@@ -73,7 +73,7 @@ window.Salamandras12 = (() => {
     const linhas=ls.map(l=>{
       const conteudos=pos.filter(p=>p.local_id===l.id).map(p=>{
         const lt=lotes.find(t=>t.id===p.lote_id);const ing=is.find(i=>i.id===lt?.ingrediente_id);
-        return `${E(ing?.nome||'Ingrediente')} (lote ${E(lt?.codigo)}): ${num(p.quantidade)} ${E(ing?.unidade||'')}`;
+        return `${E(ing?.nome||'Insumo')} (lote ${E(lt?.codigo)}): ${num(p.quantidade)} ${E(ing?.unidade||'')}`;
       });
       const caps=cs.filter(c=>c.local_id===l.id).map(c=>`${E(is.find(i=>i.id===c.ingrediente_id)?.nome)}: até ${num(c.capacidade)}`).join(' · ');
       return `<tr><td><b>${E(l.nome)}</b><div class="muted">${E(l.area)}</div></td><td>${l.prioridade}</td>
@@ -86,7 +86,7 @@ window.Salamandras12 = (() => {
       <button type="submit">Criar localização</button></form></section>
       <section class="card"><h2>Definir capacidade por matéria-prima</h2><form id="f-cap" class="erp12-form">
       <label>Local<select name="local" required>${opt(ls,l=>l.id,l=>l.nome)}</select></label>
-      <label>Matéria-prima<select name="ing" required>${opt(is,i=>i.id,i=>`${i.nome} (${i.unidade})`)}</select></label>
+      <label>Insumo<select name="ing" required>${opt(is,i=>i.id,i=>`${i.nome} (${i.unidade})`)}</select></label>
       <label>Quantidade máxima na unidade cadastrada<input name="cap" type="number" min="0.001" step="0.001" required></label>
       <button type="submit">Salvar capacidade</button></form></section></div>`:'')+
      `<section class="card"><h2>Locais cadastrados</h2><details><summary class="erp12-summary">Ver lista de localizações (${ls.length})</summary>${tabela(['Local','Prioridade','Limites','Conteúdo'],linhas)}</details></section>`);
@@ -112,9 +112,9 @@ window.Salamandras12 = (() => {
       <label>CNPJ/CPF (opcional)<input name="documento"></label><label>E-mail (opcional)<input name="email" type="email"></label>
       <button type="submit">Salvar fornecedor</button></form></section>
       <section class="card"><h2>Receber compra</h2><form id="f-compra" class="erp12-form">
-      <label>Matéria-prima<select name="ingrediente" required>${opt(ingred,i=>i.id,i=>`${i.nome} (${i.unidade})`)}</select></label>
+      <label>Insumo<select name="ingrediente" required>${opt(ingred,i=>i.id,i=>`${i.nome} (${i.unidade})`)}</select></label>
       <label>Fornecedor<select name="fornecedor"><option value="">Não informado</option>${opt(forn,x=>x.id,x=>x.nome)}</select></label>
-      <label>Quantidade (na unidade do ingrediente)<input name="quantidade" type="number" min="0.001" step="0.001" required></label>
+      <label>Quantidade (na unidade do insumo)<input name="quantidade" type="number" min="0.001" step="0.001" required></label>
       <label>Valor total da compra (R$)<input name="custo" type="number" min="0" step="0.01" required></label>
       <label>Validade<input name="validade" type="date" required></label>
       <label>Lote do fabricante (opcional)<input name="fabricante"></label>
@@ -123,7 +123,7 @@ window.Salamandras12 = (() => {
       <button type="submit">Confirmar entrada no estoque</button></form></section></div>`:'')+
       `<section class="card"><h2>Fornecedores cadastrados</h2><details><summary class="erp12-summary">Ver fornecedores (${forn.length})</summary>${tabela(['Nome','Telefone','Contato'],fornecedores)}</details></section>
       <section class="card"><h2>Compras anteriores</h2><details><summary class="erp12-summary">Ver histórico de lotes (${(d.lotes||[]).length})</summary>
-      ${tabela(['Lote','Ingrediente','Validade','Saldo'],(d.lotes||[]).map(l=>`<tr><td>${E(l.codigo)}</td><td>${E(ingred.find(i=>i.id===l.ingrediente_id)?.nome||'—')}</td><td>${F(l.validade)}</td><td>${num(l.quantidade_atual)}</td></tr>`).join(''))}</details></section>`);
+      ${tabela(['Lote','Insumo','Validade','Saldo'],(d.lotes||[]).map(l=>`<tr><td>${E(l.codigo)}</td><td>${E(ingred.find(i=>i.id===l.ingrediente_id)?.nome||'—')}</td><td>${F(l.validade)}</td><td>${num(l.quantidade_atual)}</td></tr>`).join(''))}</details></section>`);
     onForm(ctx,'f-fornecedor',async form=>{
       await ctx.rpc('api_12_fornecedor_salvar',{p_empresa:ctx.tenant,p_nome:form.elements.nome.value,
       p_telefone:form.elements.telefone.value,p_documento:form.elements.documento.value,p_email:form.elements.email.value});
@@ -133,7 +133,7 @@ window.Salamandras12 = (() => {
     ac('sugerir-locais','click',async()=>{
       const form=f('f-compra');if(!form)return;
       const ing=form.elements.ingrediente.value;const qtd=Number(form.elements.quantidade.value);
-      if(!ing||!(qtd>0)){ctx.aviso('Informe ingrediente e quantidade',true);return}
+      if(!ing||!(qtd>0)){ctx.aviso('Informe insumo e quantidade',true);return}
       try{
         const r=await ctx.rpc('api_12_sugerir_locais',{p_empresa:ctx.tenant,p_ingrediente:ing,p_quantidade:qtd});
         sugestao=r.sugestao||[];
@@ -176,7 +176,7 @@ window.Salamandras12 = (() => {
       if(s.tipo==='descarte_lote'){
         const lt=todosLotes.find(l=>l.id===s.dados?.lote);
         const local=locais.find(l=>l.id===s.dados?.local);
-        return `Lote ${E(lt?.codigo||'—')} · ${E(ing.find(i=>i.id===lt?.ingrediente_id)?.nome||'Ingrediente')} · ${num(s.dados?.quantidade)} · ${E(local?.nome||'—')}`;
+        return `Lote ${E(lt?.codigo||'—')} · ${E(ing.find(i=>i.id===lt?.ingrediente_id)?.nome||'Insumo')} · ${num(s.dados?.quantidade)} · ${E(local?.nome||'—')}`;
       }
       return `${E(todosItens.find(i=>i.id===s.dados?.item)?.nome||'Item')} · variação ${num(s.dados?.variacao)}`;
     };
@@ -208,11 +208,11 @@ window.Salamandras12 = (() => {
       <label>Justificativa<input name="motivo" minlength="5" maxlength="500" required placeholder="Ex.: embalagem avariada"></label>
       <button type="submit" class="${acessos.administrar?'danger':''}">${acessos.administrar?'Confirmar descarte':'Enviar para aprovação'}</button></form>`;
     const formAjuste=`<form id="rh13b-f-ajuste" class="erp12-form">
-      <label>Item<select name="item" required>${todosItens.map(i=>`<option value="${E(i.tipo+'|'+i.id)}">${E(i.nome)} · ${i.tipo==='ingrediente'?'Ingrediente sem lote':'Produto pronto'}</option>`).join('')}</select></label>
+      <label>Item<select name="item" required>${todosItens.map(i=>`<option value="${E(i.tipo+'|'+i.id)}">${E(i.nome)} · ${i.tipo==='ingrediente'?'Insumo sem lote':'Produto pronto'}</option>`).join('')}</select></label>
       <label>Variação (+ entrada / − saída)<input name="variacao" type="number" step="0.001" required placeholder="Ex.: -3"></label>
       <label>Justificativa<input name="motivo" minlength="5" maxlength="500" required></label>
       <button type="submit" ${todosItens.length?'':'disabled'}>Solicitar ajuste</button>
-      <p class="muted">Ingredientes com lotes devem ser corrigidos pelo controle de lotes. A solicitação não altera o estoque antes da aprovação.</p></form>`;
+      <p class="muted">Insumos com lotes devem ser corrigidos pelo controle de lotes. A solicitação não altera o estoque antes da aprovação.</p></form>`;
     se(ctx,linkVoltar+titulo('Movimentações','Solicitações, aprovações e histórico de estoque')+
       `<div class="rh13b-overview"><div><b>${pendientes.length}</b><span>Solicitações pendentes</span></div><div><b>${movs.length}</b><span>Movimentações recentes</span></div></div>`+
       `<details class="card rh13b-details" id="rh13b-fila"><summary>Solicitações para análise (${pendientes.length})</summary>
@@ -279,13 +279,13 @@ window.Salamandras12 = (() => {
         const i=ing.find(x=>x.id===r.ingrediente_id);
         const ultimo=lotes.filter(l=>l.ingrediente_id===r.ingrediente_id&&Number(l.custo_total)>0)
           .sort((a,b)=>String(b.recebido_em).localeCompare(String(a.recebido_em)))[0];
-        if(!ultimo){faltas.push(`Preço de ${i?.nome||'ingrediente'} não cadastrado`);return t}
+        if(!ultimo){faltas.push(`Preço de ${i?.nome||'insumo'} não cadastrado`);return t}
         return t+Number(r.quantidade||0)*Number(ultimo.custo_total)/Number(ultimo.quantidade_inicial||1);
       },0);
       const custoTotal=custo+extras;
       const preco=Number(p.preco||0),margem=preco>0?(preco-custoTotal)/preco*100:0;
       return `<tr><td><b>${E(p.nome)}</b></td><td>${C(preco)}</td><td>${faltas.length?'<b class="erp12-amarelo">Incompleto</b>':C(custoTotal)}</td>
-       <td>${faltas.length?'—':margem.toFixed(1)+'%'}</td><td>${faltas.length?E(faltas.join(' · ')):'Estimativa baseada em ingredientes e custos adicionais cadastrados; impostos e despesas gerais podem faltar'}</td></tr>`;
+       <td>${faltas.length?'—':margem.toFixed(1)+'%'}</td><td>${faltas.length?E(faltas.join(' · ')):'Estimativa baseada em insumos e custos adicionais cadastrados; impostos e despesas gerais podem faltar'}</td></tr>`;
     }).join('');
     se(ctx,linkVoltar+titulo('Custos e análises','Simule preços sem alterar os produtos reais')+
       `<div class="card"><h2>Simulador de preço</h2><p class="muted">O cálculo não altera preços nem envia dados à loja.</p>

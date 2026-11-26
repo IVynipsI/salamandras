@@ -497,3 +497,14 @@ html[data-tema-erp="escuro"] .erp15-modelo p{color:#bacfcb!important}
 .erp15-produto,.erp15-beneficio{border:1px solid var(--erp12-borda,#d5e1db);padding:12px;border-radius:12px}
 .erp15-produto strong{display:block;margin-bottom:10px}.erp15-config .muted{font-size:12px}
 @media(max-width:800px){.erp15-opcao{grid-template-columns:70px 1fr}.erp15-opcao>label:nth-child(4),.erp15-opcao>button{grid-column:1/-1}}
+
+/* ATT 17 - legibilidade global e central DEV */
+html[data-tema-erp="escuro"] .erp13c-registro,html[data-tema-erp="escuro"] .erp13c-numero,html[data-tema-erp="escuro"] .erp13c-nota,html[data-tema-erp="escuro"] .erp13c-dados span,html[data-tema-erp="escuro"] .rh13-detalhe,html[data-tema-erp="escuro"] .erp15-marketplace-linhas>div,html[data-tema-erp="escuro"] .erp15-produto,html[data-tema-erp="escuro"] .erp15-beneficio{background:#203239!important;color:#f0f9f6!important;border-color:#4b696d!important}
+html[data-tema-erp="escuro"] .erp13c-numero span,html[data-tema-erp="escuro"] .erp13c-sub,html[data-tema-erp="escuro"] .erp13c-vazio,html[data-tema-erp="escuro"] .erp13c-cabecalho p,html[data-tema-erp="escuro"] .rh13-global-info{color:#c1d7d0!important}
+html[data-tema-erp="escuro"] .erp13c-etiqueta,html[data-tema-erp="escuro"] .erp13c-dados span{border-color:#55736f!important;color:#ecfaf6!important}
+html[data-tema-erp="escuro"] .card input,html[data-tema-erp="escuro"] .card select,html[data-tema-erp="escuro"] .card textarea{background:#17272c!important;color:#f4faf8!important;border-color:#57727a!important}
+html[data-tema-erp="escuro"] .card input::placeholder{color:#bcd0cc!important}
+.dev-topbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px}.dev-topbar strong{font-size:11px;letter-spacing:.06em}.dev-topbar a{font-size:12px}.dev-topbar select{max-width:235px}
+#erp17-convite-link{overflow-wrap:anywhere;margin:12px 0;display:flex;align-items:center;flex-wrap:wrap;gap:10px}#erp17-empresa-usuarios[hidden],.rh13-global-cadastros[hidden]{display:none!important}
+
+[hidden]{display:none!important}

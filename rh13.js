@@ -5,6 +5,22 @@ window.Salamandras13 = (() => {
   const el = id => document.getElementById(id);
   const E = v => String(v??'').replace(/[&<>"']/g, x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
   const moeda = v => Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  function moedaTexto(valor,fechar=false){
+    const s=String(valor||'').replace(/[^0-9,.]/g,'');
+    const k=s.lastIndexOf(','),integral=(k>=0?s.slice(0,k):s).replace(/\D/g,'');
+    const cent=k<0?'':s.slice(k+1).replace(/\D/g,'').slice(0,2);
+    return (integral?Number(integral).toLocaleString('pt-BR'):'0')+(k>=0?','+cent:fechar?',00':'');
+  }
+  function moedaNumero(valor){
+    const s=String(valor||'').trim();if(!s)return null;
+    const n=Number(s.replace(/\./g,'').replace(',','.'));
+    if(!Number.isFinite(n)||n<0)throw new Error('Valor monetario invalido');
+    return n;
+  }
+  function ativarMascara(input){if(!input)return;
+    input.addEventListener('input',()=>{input.value=moedaTexto(input.value)});
+    input.addEventListener('blur',()=>{if(input.value.trim())input.value=moedaTexto(input.value,true)});
+  }
   const diaBR = v => v?String(v).slice(0,10).split('-').reverse().join('/'):'—';
   const T = (hs,linhas)=>`<div class="rolagem"><table class="tabela"><thead><tr>${hs.map(x=>`<th>${E(x)}</th>`).join('')}</tr></thead><tbody>${linhas||`<tr><td colspan="${hs.length}" class="muted">Nenhum registro.</td></tr>`}</tbody></table></div>`;
   const C = (tit,body)=>`<section class="card"><h2>${E(tit)}</h2>${body}</section>`;
@@ -131,7 +147,8 @@ window.Salamandras13 = (() => {
       ctx.perfil.cargo==='dev'?ctx.rpc('api_13d_pendentes'):Promise.resolve([])
     ]);
     const globalHtml=ctx.perfil.cargo==='dev'?renderizarFilaGlobal(ctx,protegido(globais)):'';
-    if(!empresa){ctx.container(globalHtml+'<p class="muted">Selecione uma empresa no topo para gerenciar os cargos e funcionários dela.</p>');
+    const devFiltro=ctx.perfil.cargo==='dev'?C('Central DEV', '<label>Visualização<select id="erp17-visao"><option value="todas">Pendências DEV e empresa selecionada</option><option value="dev">Somente DEV</option><option value="empresa">Somente empresa selecionada</option></select></label><p class="muted">Selecione outra empresa na Área DEV, no topo.</p>'):'';
+    if(!empresa){ctx.container(devFiltro+globalHtml+'<p class="muted">Selecione uma empresa na Área DEV para gerenciar os funcionários dela.</p>');
       vincularFilaGlobal(ctx);return;}
     const lista=protegido(usuarios0),cargos=protegido(cargos0?.cargos).filter(c=>c.ativo),
       banidos=protegido(banidos0);
@@ -152,7 +169,10 @@ window.Salamandras13 = (() => {
     };
     const ativos=lista.filter(u=>!['rejeitado','bloqueado'].includes(u.status) && (ctx.perfil.cargo!=='dev'||u.status!=='pendente'));
     const historico=lista.filter(u=>['rejeitado','bloqueado'].includes(u.status));
-    const blocos=`${globalHtml}<div class="rh13-kicker">SALAMANDRAS ERP / ADMINISTRAÇÃO</div><h1>Usuários</h1>
+    const conviteHtml=['dev','adm'].includes(ctx.perfil.cargo)?C('Convidar por e-mail','<form id="erp17-convidar" class="formgrid"><label>E-mail do convidado<input name="email" type="email" required placeholder="pessoa@empresa.com"></label><button type="submit">Gerar convite</button></form><div id="erp17-convite-link"></div><p class="muted">Envie o link por e-mail. Após o cadastro, aprove o usuário nesta página.</p>'):'';
+    const salHtml=['dev','adm'].includes(ctx.perfil.cargo)?C('Permissão exclusiva: alterar salários',
+      '<form id="erp17-salarios" class="formgrid"><label>Funcionário<select name="usuario" required><option value="">Selecione</option>'+opts(protegido(usuarios0).filter(u=>u.status==='aprovado'&&u.cargo!=='dev'),u=>u.id,u=>u.nome||u.email)+'</select></label><label><input type="checkbox" name="permitir"> Autorizar este funcionário a alterar salários</label><button type="submit">Salvar autorização</button></form>'):'';
+    const blocos=`${devFiltro}${globalHtml}<div id="erp17-empresa-usuarios">${conviteHtml}${salHtml}<div class="rh13-kicker">SALAMANDRAS ERP / ADMINISTRAÇÃO</div><h1>Usuários</h1>
       <p class="muted">Gerencie funcionários e permissões da empresa. Somente o DEV pode nomear ou alterar administradores (ADM), inclusive vários ADMs na mesma empresa.</p>
       ${C('Pesquisar funcionários',`<div class="formgrid"><div><label>Nome ou e-mail</label><input id="rh13-busca" type="search" placeholder="Buscar funcionário"></div>
        <div><label>Cargo</label><select id="rh13-filtro-cargo"><option value="">Todos</option><option value="adm">ADM</option>${opts(cargos,c=>c.id,c=>c.nome)}</select></div>
@@ -185,8 +205,28 @@ window.Salamandras13 = (() => {
             <div class="acoes"><button type="submit">Salvar cargo</button><button id="rh13-cargo-limpar" class="sec" type="button">Limpar seleção</button></div>
           </form>
         </details>
-      </details>`;
+      </details></div>`;
     ctx.container(blocos);
+    const visao=el('erp17-visao');if(visao)visao.onchange=()=>{
+      const global=document.querySelector('.rh13-global-cadastros'),area=el('erp17-empresa-usuarios');
+      if(global)global.hidden=visao.value==='empresa';if(area)area.hidden=visao.value==='dev';
+    };
+    const conviteForm=el('erp17-convidar');if(conviteForm)conviteForm.onsubmit=async e=>{
+      e.preventDefault();const email=conviteForm.elements.email.value.trim().toLowerCase();
+      try{const token=await ctx.rpc('api_17_convite_criar',{p_empresa:empresa,p_email:email});
+        const u=new URL('index.html',location.href);u.searchParams.set('convite',token);
+        const link=u.href;const destino=el('erp17-convite-link');
+        destino.textContent='Convite gerado para '+email+': '+link+' ';
+        const copiar=document.createElement('button');copiar.type='button';copiar.className='sec small';copiar.textContent='Copiar link';
+        copiar.onclick=async()=>{try{await navigator.clipboard.writeText(link);ctx.aviso('Link copiado')}catch{prompt('Copie o link',link)}};destino.appendChild(copiar);
+        const enviar=document.createElement('a');enviar.href='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent('Convite de acesso')+'&body='+encodeURIComponent('Acesse: '+link);enviar.textContent='Abrir e-mail';destino.appendChild(enviar);
+      }catch(x){ctx.falha(x)}
+    };
+    const salForm=el('erp17-salarios');if(salForm)salForm.onsubmit=async e=>{
+      e.preventDefault();try{ctx.aviso(await ctx.rpc('api_17_salarios_autorizar',{
+        p_empresa:empresa,p_usuario:salForm.elements.usuario.value,p_permitido:salForm.elements.permitir.checked
+      }))}catch(x){ctx.falha(x)}
+    };
     if(ctx.perfil.cargo==='dev')vincularFilaGlobal(ctx);
     if(aba==='cargos'||location.hash==='#cargos')el('rh13-cargos').open=true;
     const atualizarFiltro=()=>{
@@ -343,7 +383,7 @@ window.Salamandras13 = (() => {
          <div><label>Função profissional</label><input name="funcao" required maxlength="100" placeholder="Ex.: Assistente de vendas"></div>
          <div><label>Departamento</label><input name="departamento" maxlength="100" placeholder="Ex.: Comercial"></div>
          <div><label>Admissão</label><input type="date" name="admissao"></div>
-         <div><label>Salário-base (R$)</label><input type="number" name="salario" min="0" step="0.01" required></div>
+         <div><label>Salário-base (R$)</label><input type="text" name="salario" inputmode="decimal" placeholder="Ex.: 1.500,00"></div>
          <div><label>Divisor mensal da jornada</label><input type="number" name="divisor" min="1" max="744" step="0.01" value="220" required></div>
          <div><label>Adicional de horas extras (%)</label><input type="number" name="extra" min="0" max="250" step="0.01" value="50" required></div>
          <div><button type="submit">Salvar ficha profissional</button></div>
@@ -376,9 +416,9 @@ window.Salamandras13 = (() => {
        <form class="rh13-form formgrid" id="rh13-folha">
         <div><label>Funcionário</label><select name="usuario" required>${usuariosOpts}</select></div>
         <div><label>Competência</label><input name="competencia" type="month" required></div>
-        <div><label>Bonificação manual adicional (R$)</label><input name="bonus" type="number" min="0" step="0.01" value="0"><small>Bonificações aprovadas em Solicitações são somadas automaticamente ao recalcular. Não repita o mesmo valor aqui.</small></div>
-        <div><label>Descontos conferidos (R$)</label><input name="descontos" type="number" min="0" step="0.01" value="0"></div>
-        <div><label>Encargos estimados (R$)</label><input name="encargos" type="number" min="0" step="0.01" value="0"></div>
+        <div><label>Bonificação manual adicional (R$)</label><input name="bonus" type="text" inputmode="decimal" value="0,00"><small>Bonificações aprovadas em Solicitações são somadas automaticamente ao recalcular. Não repita o mesmo valor aqui.</small></div>
+        <div><label>Descontos conferidos (R$)</label><input name="descontos" type="text" inputmode="decimal" value="0,00"></div>
+        <div><label>Encargos estimados (R$)</label><input name="encargos" type="text" inputmode="decimal" value="0,00"></div>
         <div><button type="submit">Preparar previsão</button></div>
        </form>${T(['Competência','Funcionário','Bruto','Líquido estimado','Situação'],folhas.map(f=>`<tr>
         <td>${diaBR(f.competencia)}</td><td>${E(f.nome||'Sem nome')}</td>
@@ -390,6 +430,7 @@ window.Salamandras13 = (() => {
         <div><button type="submit">Enviar após aprovação do ADM</button></div>
        </form><p class="muted">Somente ADM/DEV conclui o envio. Uma competência gera um único lançamento pendente no Financeiro.</p>
       </details>`);
+    document.querySelectorAll('#rh13-ficha-form [name="salario"],#rh13-folha [name="bonus"],#rh13-folha [name="descontos"],#rh13-folha [name="encargos"]').forEach(ativarMascara);
     obs('rh13-busca-ponto','input',()=>{const t=el('rh13-busca-ponto').value.toLocaleLowerCase('pt-BR');
       el('rh13-tabela-ponto').querySelectorAll('tbody tr').forEach(tr=>{tr.hidden=!tr.textContent.toLocaleLowerCase('pt-BR').includes(t);});
     });
@@ -405,14 +446,14 @@ window.Salamandras13 = (() => {
       const c=colaboradores.find(x=>x.id===b.dataset.ficha);if(!c)return;
       el('rh13-ficha').open=true;const form=el('rh13-ficha-form');
       form.elements.usuario.value=c.id;form.elements.funcao.value=c.funcao||'';form.elements.departamento.value=c.departamento||'';
-      form.elements.admissao.value=c.admissao||'';form.elements.salario.value=c.salario_base??'';
+      form.elements.admissao.value=c.admissao||'';form.elements.salario.value=c.salario_base==null?'':Number(c.salario_base).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
       form.elements.divisor.value=c.divisor_mensal||220;form.elements.extra.value=c.percentual_extra??50;
       el('rh13-ficha').scrollIntoView({behavior:'smooth',block:'start'});
     });fichaBotoes();
     const salvar=async(p)=>{ctx.aviso(p);await rh(ctx);};
     escutarSubmit(ctx,'rh13-ficha-form',async f=>salvar(await ctx.rpc('api_13_rh_funcionario_salvar',{
       p_empresa:empresa,p_usuario:f.get('usuario'),p_funcao:f.get('funcao'),p_departamento:f.get('departamento'),
-      p_admissao:f.get('admissao')||null,p_salario:Number(f.get('salario')),
+      p_admissao:f.get('admissao')||null,p_salario:moedaNumero(f.get('salario')),
       p_divisor:Number(f.get('divisor')),p_extra:Number(f.get('extra'))})));
     escutarSubmit(ctx,'rh13-ocorrencia',async f=>salvar(await ctx.rpc('api_13_rh_ocorrencia_criar',{
       p_empresa:empresa,p_usuario:f.get('usuario'),p_tipo:f.get('tipo'),p_inicio:f.get('inicio'),
@@ -428,7 +469,7 @@ window.Salamandras13 = (() => {
     }
     escutarSubmit(ctx,'rh13-folha',async f=>salvar(await ctx.rpc('api_13_rh_folha_preparar',{
       p_empresa:empresa,p_usuario:f.get('usuario'),p_competencia:f.get('competencia')+'-01',
-      p_bonus:Number(f.get('bonus')||0),p_descontos:Number(f.get('descontos')||0),p_encargos:Number(f.get('encargos')||0)})));
+      p_bonus:moedaNumero(f.get('bonus'))||0,p_descontos:moedaNumero(f.get('descontos'))||0,p_encargos:moedaNumero(f.get('encargos'))||0})));
     escutarSubmit(ctx,'rh13-fechamento',async f=>{
       if(!confirm('Enviar uma previsão consolidada ao Financeiro? Confira antes os impostos e descontos.'))return;
       await salvar(await ctx.rpc('api_13_rh_folha_enviar',{p_empresa:empresa,p_competencia:f.get('competencia')+'-01',p_vencimento:f.get('vencimento')}));

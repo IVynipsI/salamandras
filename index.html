@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Salamandras | Entrar</title>
-  <link rel="stylesheet" href="style.css?v=13C">
+  <link rel="stylesheet" href="style.css?v=17">
 </head>
 <body data-page="login" class="auth">
   <main class="painel-login">
@@ -27,7 +27,7 @@
           </div>
           <button type="submit">Entrar</button>
         </form>
-        <p class="muted">Ainda não tem cadastro?</p>
+        <p class="muted">Solicite um convite ao administrador.</p>
         <button id="mostrar-cadastro" type="button" class="sec">Cadastre-se</button>
       </div>
 
@@ -45,9 +45,7 @@
             <input id="cad-email" name="email" type="email" required autocomplete="email" placeholder="seuemail@exemplo.com">
           </div>
           <div>
-            <label for="cad-empresa">Empresa para solicitar acesso</label>
-            <select id="cad-empresa" name="empresa"><option value="">Carregando empresas...</option></select>
-            <small>Opcional: sem empresa escolhida, o DEV ainda receberá a solicitação.</small>
+            <p class="muted">Cadastro disponível apenas com convite individual.</p>
           </div>
           <div>
             <label for="cad-senha">Senha</label>
@@ -63,7 +61,7 @@
     <section id="pendente" class="card escondido" aria-live="polite">
       <h2 id="pendente-titulo">Aguardando aprovação</h2>
       <p id="pendente-texto">Seu cadastro ainda não foi autorizado.</p>
-      <form id="form-convite" class="formgrid">
+      <form id="form-convite" class="formgrid escondido">
         <div>
           <label for="codigo-convite">Código de convite da empresa (opcional)</label>
           <input id="codigo-convite" placeholder="Código fornecido pelo ADM">
@@ -75,7 +73,7 @@
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="mod12.js?v=13C"></script>
-  <script src="app.js?v=13C"></script>
+  <script src="mod12.js?v=17"></script>
+  <script src="app.js?v=17"></script>
 </body>
 </html>

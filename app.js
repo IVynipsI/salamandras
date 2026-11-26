@@ -331,6 +331,12 @@ async function lerPerfil(){
 }
 async function sair(){await db.auth.signOut();window.location.replace('index.html');}
 
+async function aceitarConvitePendente(){
+  const token=sessionStorage.getItem('salamandras_convite');if(!token)return;
+  const {data:{user}}=await db.auth.getUser();if(!user)return;
+  await rpc('api_17_convite_aceitar',{p_token:token});
+  sessionStorage.removeItem('salamandras_convite');
+}
 // Login e cadastro separados; contas novas permanecem pendentes ate aprovacao.
 async function iniciarLogin(){
   // Alternar entre entrar e criar conta sem navegar para outra pagina.
@@ -347,13 +353,16 @@ async function iniciarLogin(){
     $('login-email').focus();
   });
 
-  // Escolha de empresa opcional; o DEV recebe toda solicitacao, mesmo sem vinculo.
-  if($('cad-empresa')){
-    try {const empresas=await rpc('api_13d_empresas_cadastro');
-      $('cad-empresa').innerHTML='<option value="">Escolher depois</option>'+
-        (Array.isArray(empresas)?empresas:[]).map(e=>`<option value="${esc(e.id)}">${esc(e.nome)}</option>`).join('');
-    }catch(e){falha(e);}
+  // Convites individuais. Nao listar empresas publicamente.
+  const conviteUrl=new URLSearchParams(location.search).get('convite');
+  if(conviteUrl && /^[0-9a-f]{64}$/i.test(conviteUrl)){
+    try{const r=await rpc('api_17_convite_validar',{p_token:conviteUrl});
+      if(r?.valido){sessionStorage.setItem('salamandras_convite',conviteUrl);
+        $('area-login').classList.add('escondido');$('area-cadastro').classList.remove('escondido');
+      }else aviso('Convite invalido, expirado ou utilizado.',true);
+    }catch(e){falha(e)}
   }
+  $('mostrar-cadastro').hidden=!sessionStorage.getItem('salamandras_convite');
 
   // Conta existente: somente email e senha. NUNCA tenta cadastrar se a senha estiver errada.
   form('form-login',async()=>{
@@ -368,6 +377,7 @@ async function iniciarLogin(){
         throw new Error('E-mail ou senha incorretos. Se nao tem conta, clique em Cadastre-se.');
       throw new Error(error.message);
     }
+    await aceitarConvitePendente();
     await rotaAposLogin();
   });
 
@@ -376,13 +386,14 @@ async function iniciarLogin(){
     const nome=$('cad-nome').value.trim().replace(/\s+/g,' ');
     const email=$('cad-email').value.trim().toLowerCase();
     const password=$('cad-senha').value;
+    if(!sessionStorage.getItem('salamandras_convite'))throw new Error('Abra o convite da empresa para criar sua conta.');
     if(nome.length<5||nome.split(' ').length<2)
       throw new Error('Informe nome e sobrenome.');
     if(password.length<8)
       throw new Error('Crie uma senha com pelo menos 8 caracteres.');
 
     const {data,error}=await db.auth.signUp({
-      email,password,options:{data:{nome_completo:nome,empresa_solicitada_id:$('cad-empresa')?.value||null}}
+      email,password,options:{data:{nome_completo:nome}}
     });
     if(error){
       const msg=String(error.message||'').toLowerCase();
@@ -393,6 +404,7 @@ async function iniciarLogin(){
 
     if(data.session){
       // Mesmo com sessao autenticada, nao entra no ERP sem status aprovado.
+      await aceitarConvitePendente();
       await rotaAposLogin();
     }else{
       // Supabase pode pedir confirmacao de email, ou responder de forma generica
@@ -405,12 +417,7 @@ async function iniciarLogin(){
     }
   });
 
-  form('form-convite',async()=>{
-    const codigo=$('codigo-convite').value.trim();
-    if(!codigo)throw new Error('Digite o codigo recebido da empresa.');
-    aviso(await rpc('api_solicitar_doceria',{p_codigo:codigo}));
-    $('codigo-convite').value='';
-  });
+  // Convites antigos por codigo foram desativados.
   on('sair-pendente','click',sair);
   // Reaproveita a conta Auth existente; nao tenta criar um segundo usuario para o mesmo e-mail.
   const pendente=$('pendente');
@@ -431,7 +438,7 @@ async function iniciarLogin(){
       }catch(e){falha(e);}finally{botao.disabled=false;}
     });
   }
-  try{await rotaAposLogin();}catch(e){falha(e);}
+  try{await aceitarConvitePendente();await rotaAposLogin();}catch(e){falha(e);}
 }
 
 async function rotaAposLogin(){
@@ -445,11 +452,11 @@ async function rotaAposLogin(){
   $('pendente-titulo').textContent=p.status==='pendente'?'Aguardando aprovação'
     : p.status==='rejeitado'?'Acesso não aprovado':p.status==='bloqueado'?'Acesso suspenso':`Acesso: ${p.status}`;
   $('pendente-texto').textContent=p.status==='pendente'
-    ? 'Seu cadastro aguarda aprovação. O DEV pode localizar sua solicitação mesmo que não tenha escolhido uma empresa.'
+    ? 'Seu cadastro aguarda aprovação da empresa vinculada ao convite.'
     : p.status==='rejeitado'
       ? 'Sua aprovação foi cancelada ou o cadastro foi rejeitado. Você pode solicitar novamente com este mesmo e-mail e senha.'
       : 'Seu acesso está bloqueado. Consulte um administrador.';
-  $('form-convite').classList.toggle('escondido',p.status!=='pendente');
+  $('form-convite').classList.add('escondido');
   if($('pedir-novo-cadastro'))$('pedir-novo-cadastro').classList.toggle('escondido',p.status!=='rejeitado');
 }
 
@@ -474,8 +481,8 @@ async function iniciarApp(){
     docerias=await rpc('api_docerias');
     if(p.cargo==='dev'){
       const escolhido=sessionStorage.getItem('salamandras_tenant');
-      tenant=docerias.some(d=>d.id===escolhido)?escolhido:(docerias[0]?.id||null);
-      $('seletor-tenant').innerHTML=`<select id="trocar-doceria" aria-label="Empresa ativa"><option value="">Selecionar empresa</option>${selectOpcoes(docerias,d=>d.id,d=>d.nome,tenant)}</select>`;
+      tenant=docerias.some(d=>d.id===escolhido)?escolhido:null;
+      $('seletor-tenant').innerHTML=`<div class="dev-topbar"><strong>ÁREA DEV</strong><select id="trocar-doceria" aria-label="Empresa para administrar"><option value="">Todas as empresas / DEV</option>${selectOpcoes(docerias,d=>d.id,d=>d.nome,tenant)}</select><a href="usuarios.html">Usuários</a><a href="solicitacoes.html">Solicitações</a><a href="empresas.html">Empresas</a></div>`;
       on('trocar-doceria','change',ev=>{
         tenant=ev.target.value||null;
         sessionStorage.setItem('salamandras_tenant',tenant||'');
