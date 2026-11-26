@@ -481,7 +481,7 @@ async function iniciarApp(){
     docerias=await rpc('api_docerias');
     if(p.cargo==='dev'){
       const escolhido=sessionStorage.getItem('salamandras_tenant');
-      tenant=docerias.some(d=>d.id===escolhido)?escolhido:null;
+      tenant=docerias.some(d=>d.id===escolhido)?escolhido:(docerias[0]?.id||null);
       $('seletor-tenant').innerHTML=`<div class="dev-topbar"><strong>ÁREA DEV</strong><select id="trocar-doceria" aria-label="Empresa para administrar"><option value="">Todas as empresas / DEV</option>${selectOpcoes(docerias,d=>d.id,d=>d.nome,tenant)}</select><a href="usuarios.html">Usuários</a><a href="solicitacoes.html">Solicitações</a><a href="empresas.html">Empresas</a></div>`;
       on('trocar-doceria','change',ev=>{
         tenant=ev.target.value||null;
